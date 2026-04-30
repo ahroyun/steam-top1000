@@ -1,0 +1,60 @@
+name: Steam Chart Monitor
+
+on:
+  schedule:
+    # 매일 한국시간 오전 9시 (UTC 00:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  monitor-steam-charts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 3.11 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt --quiet
+
+      - name: Steam 차트 데이터 수집
+        run: python steam_chart_monitor.py
+
+      - name: 날짜 환경변수 설정
+        run: echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: 파일 저장소에 커밋
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add steam_chart_monitor.xlsx docs/data.json
+          git diff --staged --quiet || git commit -m "📊 Steam 차트 업데이트: $(date +'%Y-%m-%d')"
+          git push
+
+      - name: 이메일로 결과 전송
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "📊 Steam Chart Monitor - ${{ env.TODAY }}"
+          to: ar.yun@line.games
+          from: Steam Chart Monitor <${{ secrets.GMAIL_USERNAME }}>
+          body: |
+            오늘(${{ env.TODAY }}) Steam 인기 차트가 업데이트되었습니다.
+
+            👉 대시보드 바로가기:
+            https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
+            ---
+            본 메일은 GitHub Actions를 통해 자동 발송됩니다.
