@@ -152,9 +152,12 @@ def fetch_steamspy_top(n: int = 1000) -> list:
                     except ValueError:
                         continue
                     games.append({
-                        "appid":   appid,
-                        "name_sp": info.get("name", ""),
-                        "ccu":     info.get("ccu", 0) or 0,
+                        "appid":      appid,
+                        "name_sp":    info.get("name", ""),
+                        "ccu":        info.get("ccu", 0) or 0,
+                        "developer":  info.get("developer", "") or None,
+                        "publisher":  info.get("publisher", "") or None,
+                        "genre_sp":   info.get("genre", "") or None,
                     })
                 print(f"    ✓ {len(data)}개 수집 (누계: {len(games)}개)")
                 break
@@ -287,15 +290,22 @@ def collect_today_data() -> pd.DataFrame:
 
         name = store["name"] or g["name_sp"]
 
+        # 개발사/퍼블리셔/장르: SteamSpy 값을 1차 소스로 사용
+        # (Steam Store API의 basic 필터에는 developers/publishers 미포함)
+        developer = store["developer"] or g.get("developer")
+        publisher = store["publisher"] or g.get("publisher")
+        genres    = store["genres"]    or g.get("genre_sp")
+        pub_size  = classify_publisher(publisher)
+
         rows.append({
             "date":               today_str,
             "rank":               g["rank"],
             "appid":              g["appid"],
             "name":               name,
-            "developer":          store["developer"],
-            "publisher":          store["publisher"],
-            "publisher_size":     store["publisher_size"],
-            "genres":             store["genres"],
+            "developer":          developer,
+            "publisher":          publisher,
+            "publisher_size":     pub_size,
+            "genres":             genres,
             "ccu":                g["ccu"],
             "review_score_pct":   reviews["review_score_pct"],
             "total_reviews":      reviews["total_reviews"],
