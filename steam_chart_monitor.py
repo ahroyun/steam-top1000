@@ -277,7 +277,7 @@ def collect_today_data() -> pd.DataFrame:
         reviews = fetch_reviews(g["appid"])
         time.sleep(0.5)
 
-        name = store["name"] or g["name_sp"]
+        name = g["name_sp"]  # Steam Store API는 이제 name 미반환, SteamSpy 이름 사용
 
         # 개발사/퍼블리셔: SteamSpy 값 사용 (Steam Store API는 release_date/genres/price만 반환)
         # 장르: Steam API를 1차, SteamSpy를 보조로
