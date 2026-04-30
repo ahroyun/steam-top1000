@@ -107,27 +107,27 @@ def fetch_steamspy_top(n: int = 1000) -> list:
 # ── Steam Store API ───────────────────────────────────────────────────────────
 
 def fetch_store_details(appid: int) -> dict:
-    """Steam Store API: 공식 이름, 장르, 출시일, 가격"""
+    """Steam Store API: 장르, 출시일, 가격
+
+    filters=basic 은 name 외에 아무것도 반환하지 않으므로 사용하지 않음.
+    release_date / genres / price_overview 를 개별 필터로 요청.
+    name / developer / publisher 는 SteamSpy 값을 1차 소스로 사용.
+    """
     url = (
         f"https://store.steampowered.com/api/appdetails/"
-        f"?appids={appid}&cc=kr&filters=basic,genres,price_overview"
+        f"?appids={appid}&cc=kr&filters=release_date,genres,price_overview"
     )
     try:
         r = requests.get(url, headers=HEADERS, timeout=12)
         app = r.json().get(str(appid), {})
         if app.get("success") and app.get("data"):
             d = app["data"]
-            p  = d.get("price_overview", {})
+            p      = d.get("price_overview", {})
             genres = ", ".join(g["description"] for g in d.get("genres", []))
-            devs   = ", ".join(d.get("developers", []))
-            pubs   = d.get("publishers", [])
-            pub    = pubs[0] if pubs else None
             rd     = d.get("release_date", {})
-            release_date = rd.get("date") if (rd and not rd.get("coming_soon")) else None
+            # coming_soon=True 이거나 날짜가 없으면 None
+            release_date = rd.get("date") if (rd and not rd.get("coming_soon") and rd.get("date")) else None
             return {
-                "name":               d.get("name"),
-                "developer":          devs or None,
-                "publisher":          pub,
                 "genres":             genres or None,
                 "release_date":       release_date,
                 "price_krw":          p.get("final", 0) // 100 if p else None,
@@ -137,7 +137,6 @@ def fetch_store_details(appid: int) -> dict:
     except Exception:
         pass
     return {
-        "name": None, "developer": None, "publisher": None,
         "genres": None, "release_date": None,
         "price_krw": None, "discount_pct": 0, "original_price_krw": None,
     }
@@ -280,11 +279,11 @@ def collect_today_data() -> pd.DataFrame:
 
         name = store["name"] or g["name_sp"]
 
-        # 개발사/퍼블리셔/장르: SteamSpy 값을 1차 소스로 사용
-        # (Steam Store API의 basic 필터에는 developers/publishers 미포함)
-        developer = store["developer"] or g.get("developer")
-        publisher = store["publisher"] or g.get("publisher")
-        genres    = store["genres"]    or g.get("genre_sp")
+        # 개발사/퍼블리셔: SteamSpy 값 사용 (Steam Store API는 release_date/genres/price만 반환)
+        # 장르: Steam API를 1차, SteamSpy를 보조로
+        developer = g.get("developer")
+        publisher = g.get("publisher")
+        genres    = store["genres"] or g.get("genre_sp")
 
         # 판매량 추정: SteamSpy owners 중간값
         owners_estimate = parse_owners_midpoint(g.get("owners", "")) or None
