@@ -213,11 +213,10 @@
           <th onclick="sortTable('today',4)">규모</th>
           <th onclick="sortTable('today',5)">장르</th>
           <th onclick="sortTable('today',6)">동접자</th>
-          <th onclick="sortTable('today',7)">전일증감</th>
-          <th onclick="sortTable('today',8)">증감(%)</th>
-          <th onclick="sortTable('today',9)">긍정리뷰</th>
-          <th onclick="sortTable('today',10)">가격</th>
-          <th onclick="sortTable('today',11)">할인</th>
+          <th onclick="sortTable('today',7)">전일증감(%)</th>
+          <th onclick="sortTable('today',8)">긍정리뷰</th>
+          <th onclick="sortTable('today',9)">가격</th>
+          <th onclick="sortTable('today',10)">할인</th>
         </tr></thead>
         <tbody id="tbody-today"></tbody>
       </table>
@@ -406,17 +405,11 @@ function pubBadge(size) {
 
 function ccuChangeFmt(chg, pct) {
   if (chg == null) return '-';
-  const sign = chg > 0 ? '+' : '';
-  const cls  = chg > 0 ? 'ccu-up' : chg < 0 ? 'ccu-down' : '';
-  const arrow = chg > 0 ? '▲' : chg < 0 ? '▼' : '';
-  return `<span class="ccu-change ${cls}">${arrow}${sign}${Number(chg).toLocaleString()}</span>`;
-}
-
-function ccuChangePctFmt(pct) {
-  if (pct == null) return '';
-  const sign = pct > 0 ? '+' : '';
-  const cls  = pct > 0 ? 'ccu-up' : pct < 0 ? 'ccu-down' : '';
-  return `<span class="ccu-change ${cls}">${sign}${pct}%</span>`;
+  const sign  = chg > 0 ? '+' : '';
+  const cls   = chg > 0 ? 'ccu-up' : chg < 0 ? 'ccu-down' : '';
+  const arrow = chg > 0 ? '▲' : chg < 0 ? '▼' : '–';
+  const pctStr = pct != null ? ` (${chg > 0 ? '+' : ''}${pct}%)` : '';
+  return `<span class="ccu-change ${cls}">${arrow} ${sign}${Number(chg).toLocaleString()}${pctStr}</span>`;
 }
 
 // ── 탭 전환 ─────────────────────────────────────────────────────────────────
@@ -500,7 +493,6 @@ function renderPage(key) {
         <td class="muted-cell">${g.genres||'-'}</td>
         <td class="num">${fmt(g.ccu)}</td>
         <td>${ccuChangeFmt(g.ccu_change, g.ccu_change_pct)}</td>
-        <td>${ccuChangePctFmt(g.ccu_change_pct)}</td>
         <td><span class="badge-score ${sCls}">${g.review_score_pct}%</span></td>
         <td>${fmtW(g.price_krw)}</td>
         <td>${disc > 0 ? `<span class="badge-discount">-${disc}%</span>` : '-'}</td>
@@ -578,7 +570,7 @@ function sortTable(key, col) {
   filtered[key].sort((a, b) => {
     const isToday = key === 'today';
     const fields = isToday
-      ? ['rank','name','developer','publisher','publisher_size','genres','ccu','ccu_change','ccu_change_pct','review_score_pct','price_krw','discount_pct']
+      ? ['rank','name','developer','publisher','publisher_size','genres','ccu','ccu_change','review_score_pct','price_krw','discount_pct']
       : ['name','days_in_top','avg_rank','best_rank','developer','publisher','publisher_size','genres','avg_ccu','latest_ccu','avg_review_score','latest_price','first_seen'];
     const field = fields[col];
     const av = a[field], bv = b[field];
