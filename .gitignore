@@ -1,5 +1,4 @@
 __pycache__/
 *.pyc
 .DS_Store
-steam_monitor_log.txt
-*.xlsx
+steam_tracker_log.txt
