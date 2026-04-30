@@ -130,76 +130,90 @@ def classify_publisher(pub: str) -> str:
 
 def scrape_steamcharts(n: int = 1000) -> list:
     """steamcharts.com에서 상위 N개 게임 수집 (25개/페이지)"""
-    pages = (n + 24) // 25
+    pages_needed = (n + 24) // 25
     games = []
 
-    for page in range(1, pages + 1):
-        url = (
-            "https://steamcharts.com/top"
-            if page == 1
-            else f"https://steamcharts.com/top/p/{page}"
-        )
-        print(f"  steamcharts 페이지 {page}/{pages} 수집 중...")
-
+    def parse_num(text):
+        t = text.replace(",", "").replace("+", "").strip()
         try:
-            r = requests.get(url, headers=HEADERS, timeout=20)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.text, "lxml")
+            return int(t)
+        except ValueError:
+            return 0
 
-            table = soup.find("table", {"id": "top-table"})
-            if not table:
-                table = soup.find("table")
-            if not table:
-                print(f"    ⚠ 테이블을 찾을 수 없음 (페이지 {page})")
-                break
+    for page in range(1, pages_needed + 1):
+        # 모든 페이지를 /p/{N} 형식으로 통일 (/top 은 /p/1 과 동일)
+        url = f"https://steamcharts.com/top/p/{page}"
+        print(f"  steamcharts 페이지 {page}/{pages_needed} 수집 중... ({url})")
 
-            tbody = table.find("tbody") or table
-            rows = tbody.find_all("tr")
+        success = False
+        for attempt in range(3):
+            try:
+                r = requests.get(url, headers=HEADERS, timeout=20)
 
-            for row in rows:
-                cells = row.find_all("td")
-                if len(cells) < 4:
+                if r.status_code == 429:
+                    print(f"    ⚠ Rate limited, 30초 대기 후 재시도...")
+                    time.sleep(30)
                     continue
 
-                link = row.find("a", href=lambda h: h and "/app/" in str(h))
-                if not link:
+                r.raise_for_status()
+                soup = BeautifulSoup(r.text, "lxml")
+
+                table = soup.find("table", {"id": "top-table"})
+                if not table:
+                    table = soup.find("table")
+                if not table:
+                    print(f"    ⚠ 테이블 없음 (상태코드: {r.status_code})")
+                    time.sleep(5)
                     continue
 
-                try:
-                    appid = int(link["href"].split("/app/")[-1].rstrip("/"))
-                except (ValueError, IndexError):
-                    continue
+                tbody = table.find("tbody") or table
+                page_rows = tbody.find_all("tr")
+                page_games = []
 
-                def parse_num(text):
-                    t = text.replace(",", "").replace("+", "").strip()
+                for row in page_rows:
+                    cells = row.find_all("td")
+                    if len(cells) < 4:
+                        continue
+
+                    link = row.find("a", href=lambda h: h and "/app/" in str(h))
+                    if not link:
+                        continue
+
                     try:
-                        return int(t)
-                    except ValueError:
-                        return 0
+                        appid = int(link["href"].split("/app/")[-1].rstrip("/"))
+                    except (ValueError, IndexError):
+                        continue
 
-                rank      = parse_num(cells[0].get_text())
-                name_sc   = link.get_text(strip=True)
-                ccu       = parse_num(cells[2].get_text())
-                peak_ccu  = parse_num(cells[3].get_text())
+                    rank = parse_num(cells[0].get_text())
+                    if rank == 0:
+                        rank = len(games) + len(page_games) + 1
 
-                if rank == 0:
-                    rank = len(games) + 1
+                    page_games.append({
+                        "rank":     rank,
+                        "appid":    appid,
+                        "name_sc":  link.get_text(strip=True),
+                        "ccu":      parse_num(cells[2].get_text()),
+                        "peak_ccu": parse_num(cells[3].get_text()),
+                    })
 
-                games.append({
-                    "rank":     rank,
-                    "appid":    appid,
-                    "name_sc":  name_sc,
-                    "ccu":      ccu,
-                    "peak_ccu": peak_ccu,
-                })
-
-                if len(games) >= n:
+                if page_games:
+                    games.extend(page_games)
+                    print(f"    ✓ {len(page_games)}개 수집 (누계: {len(games)}개)")
+                    success = True
                     break
+                else:
+                    print(f"    ⚠ 게임 데이터 없음 (시도 {attempt+1}/3)")
+                    time.sleep(5)
 
-        except Exception as e:
-            print(f"    ⚠ 스크래핑 오류 (페이지 {page}): {e}")
+            except Exception as e:
+                print(f"    ⚠ 오류 (시도 {attempt+1}/3): {e}")
+                time.sleep(5)
 
-        time.sleep(1.2)
+        if not success:
+            print(f"  ✗ 페이지 {page} 수집 실패, 중단")
+            break
+
+        time.sleep(1.5)
 
         if len(games) >= n:
             break
