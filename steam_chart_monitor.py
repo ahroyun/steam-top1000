@@ -5,9 +5,10 @@ SteamSpy API로 상위 1000개 게임을 매일 수집합니다.
 
 수집 데이터:
   - 순위 / 동시접속자(CCU) / 전일대비 CCU 증감
-  - 개발사 / 퍼블리셔 / 퍼블리셔 규모
-  - 장르 / 가격 / 할인율
-  - 긍정 리뷰 비율
+  - 개발사 / 퍼블리셔
+  - 장르 / 출시일 / 판매량(추정)
+  - 가격 / 할인율
+  - 리뷰 수 / 긍정 리뷰 비율
 
 롱런 기준:
   - 1주(7일) / 2주(14일) / 4주(28일) 이상 상위 1000위 유지
@@ -40,89 +41,18 @@ HEADERS = {
     )
 }
 
-# ── 퍼블리셔 규모 분류 ────────────────────────────────────────────────────────
-MAJOR_PUBLISHERS = {
-    "Valve", "Valve Software",
-    "Electronic Arts", "EA Games", "EA Sports",
-    "Ubisoft", "Ubisoft Entertainment",
-    "Activision", "Blizzard Entertainment", "Activision Blizzard",
-    "Microsoft Studios", "Xbox Game Studios", "Microsoft Game Studios",
-    "Take-Two Interactive", "2K Games", "2K", "Rockstar Games",
-    "Bethesda Softworks", "Bethesda Game Studios", "ZeniMax Media",
-    "Sony Interactive Entertainment", "PlayStation Studios", "PlayStation PC LLC",
-    "Nintendo",
-    "Square Enix", "SQUARE ENIX",
-    "BANDAI NAMCO Entertainment", "Bandai Namco Games", "BANDAI NAMCO Entertainment Europe",
-    "Capcom", "CAPCOM Co., Ltd.",
-    "SEGA", "Sega",
-    "Konami Digital Entertainment", "KONAMI",
-    "Warner Bros. Games", "Warner Bros. Interactive Entertainment", "WB Games",
-    "CD PROJEKT RED",
-    "Riot Games",
-    "Epic Games",
-    "NEXON Korea", "Nexon", "NEXON",
-    "NCSOFT", "NCSoft",
-    "KRAFTON, Inc.", "PUBG Corporation", "Krafton",
-    "miHoYo", "COGNOSPHERE", "HoYoverse",
-    "Tencent Games", "Level Infinite",
-    "NetEase Games",
-    "Perfect World", "Perfect World Entertainment",
-    "Wargaming",
-    "Gaijin Entertainment",
-    "505 Games",
-}
 
-MID_PUBLISHERS = {
-    "Paradox Interactive",
-    "Focus Entertainment", "Focus Home Interactive",
-    "THQ Nordic",
-    "Deep Silver",
-    "Devolver Digital",
-    "Team17", "Team17 Digital",
-    "Kalypso Media",
-    "Nacon",
-    "Curve Games", "Curve Digital",
-    "Raw Fury",
-    "Humble Games",
-    "Gearbox Publishing", "Gearbox Software",
-    "Private Division",
-    "tinyBuild",
-    "Wired Productions",
-    "Rebellion", "Rebellion Developments",
-    "CI Games",
-    "Tripwire Interactive",
-    "1C Entertainment",
-    "Daedalic Entertainment",
-    "Giants Software",
-    "Fatshark",
-    "Frontier Developments",
-    "Saber Interactive",
-    "Aspyr",
-    "Merge Games",
-    "Maximum Games",
-    "Modus Games",
-    "Toplitz Productions",
-    "Assemble Entertainment",
-    "Microids",
-    "astragon Entertainment",
-    "Ravenscourt",
-    "Thunderful Publishing",
-    "Headup",
-    "Bigben Interactive",
-    "Focus Entertainment",
-    "Fulqrum Publishing",
-    "Libredia Entertainment",
-}
+# ── SteamSpy owners 파싱 ──────────────────────────────────────────────────────
 
-
-def classify_publisher(pub: str) -> str:
-    if not pub:
-        return "미확인"
-    if pub in MAJOR_PUBLISHERS:
-        return "대형"
-    if pub in MID_PUBLISHERS:
-        return "중형"
-    return "인디/소형"
+def parse_owners_midpoint(owners_str: str) -> int:
+    """SteamSpy owners 범위 문자열 → 중간값 (예: '200,000 .. 500,000' → 350000)"""
+    try:
+        parts = owners_str.replace(",", "").split("..")
+        lo = int(parts[0].strip())
+        hi = int(parts[1].strip())
+        return (lo + hi) // 2
+    except Exception:
+        return 0
 
 
 # ── SteamSpy API (상위 게임 목록) ────────────────────────────────────────────
@@ -134,7 +64,6 @@ def fetch_steamspy_top(n: int = 1000) -> list:
     결과를 CCU 기준으로 정렬해 순위를 매김.
     """
     games = []
-    # 1000개를 채우기 위해 page=0, 1 두 페이지 요청 (중복 제거 후 정렬)
     pages_needed = max(1, (n + 999) // 1000)
 
     for page in range(pages_needed):
@@ -158,6 +87,7 @@ def fetch_steamspy_top(n: int = 1000) -> list:
                         "developer":  info.get("developer", "") or None,
                         "publisher":  info.get("publisher", "") or None,
                         "genre_sp":   info.get("genre", "") or None,
+                        "owners":     info.get("owners", "") or "",
                     })
                 print(f"    ✓ {len(data)}개 수집 (누계: {len(games)}개)")
                 break
@@ -165,9 +95,8 @@ def fetch_steamspy_top(n: int = 1000) -> list:
                 print(f"    ⚠ 오류 (시도 {attempt+1}/3): {e}")
                 time.sleep(5)
 
-        time.sleep(2)  # SteamSpy rate limit 준수
+        time.sleep(2)
 
-    # CCU 기준 내림차순 정렬 후 순위 부여
     games.sort(key=lambda x: x["ccu"], reverse=True)
     for i, g in enumerate(games, 1):
         g["rank"] = i
@@ -178,7 +107,7 @@ def fetch_steamspy_top(n: int = 1000) -> list:
 # ── Steam Store API ───────────────────────────────────────────────────────────
 
 def fetch_store_details(appid: int) -> dict:
-    """Steam Store API: 공식 이름, 개발사, 퍼블리셔, 장르, 가격"""
+    """Steam Store API: 공식 이름, 장르, 출시일, 가격"""
     url = (
         f"https://store.steampowered.com/api/appdetails/"
         f"?appids={appid}&cc=kr&filters=basic,genres,price_overview"
@@ -188,17 +117,19 @@ def fetch_store_details(appid: int) -> dict:
         app = r.json().get(str(appid), {})
         if app.get("success") and app.get("data"):
             d = app["data"]
-            p = d.get("price_overview", {})
+            p  = d.get("price_overview", {})
             genres = ", ".join(g["description"] for g in d.get("genres", []))
             devs   = ", ".join(d.get("developers", []))
             pubs   = d.get("publishers", [])
             pub    = pubs[0] if pubs else None
+            rd     = d.get("release_date", {})
+            release_date = rd.get("date") if (rd and not rd.get("coming_soon")) else None
             return {
                 "name":               d.get("name"),
                 "developer":          devs or None,
                 "publisher":          pub,
-                "publisher_size":     classify_publisher(pub),
                 "genres":             genres or None,
+                "release_date":       release_date,
                 "price_krw":          p.get("final", 0) // 100 if p else None,
                 "discount_pct":       p.get("discount_percent", 0) if p else 0,
                 "original_price_krw": p.get("initial", 0) // 100 if p else None,
@@ -207,7 +138,7 @@ def fetch_store_details(appid: int) -> dict:
         pass
     return {
         "name": None, "developer": None, "publisher": None,
-        "publisher_size": "미확인", "genres": None,
+        "genres": None, "release_date": None,
         "price_krw": None, "discount_pct": 0, "original_price_krw": None,
     }
 
@@ -229,12 +160,71 @@ def fetch_reviews(appid: int) -> dict:
         pct   = round(pos / total * 100, 1) if total > 0 else 0
         return {
             "review_score_pct": pct,
-            "positive_reviews": pos,
             "total_reviews":    total,
         }
     except Exception:
         pass
-    return {"review_score_pct": 0, "positive_reviews": 0, "total_reviews": 0}
+    return {"review_score_pct": 0, "total_reviews": 0}
+
+
+# ── 출시 예정 게임 수집 ────────────────────────────────────────────────────────
+
+def fetch_upcoming_games() -> list:
+    """Steam Featured Categories에서 주목 출시 예정 게임 목록 수집"""
+    print("▶ 출시 예정 게임 수집 중...")
+    url = "https://store.steampowered.com/api/featuredcategories/?cc=kr&l=koreana"
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        data = r.json()
+        items = data.get("coming_soon", {}).get("items", [])
+        print(f"  Steam 주목 신작: {len(items)}개")
+
+        games = []
+        for item in items:
+            appid = item.get("id")
+            if not appid:
+                continue
+
+            detail_url = (
+                f"https://store.steampowered.com/api/appdetails/"
+                f"?appids={appid}&cc=kr&filters=basic,genres,price_overview"
+            )
+            try:
+                dr  = requests.get(detail_url, headers=HEADERS, timeout=12)
+                app = dr.json().get(str(appid), {})
+                if app.get("success") and app.get("data"):
+                    d  = app["data"]
+                    p  = d.get("price_overview", {})
+                    genres = ", ".join(g["description"] for g in d.get("genres", []))
+                    devs   = ", ".join(d.get("developers", []))
+                    pubs   = d.get("publishers", [])
+                    pub    = pubs[0] if pubs else None
+                    rd     = d.get("release_date", {})
+                    release_date_str  = rd.get("date", "") if rd else ""
+                    coming_soon_flag  = rd.get("coming_soon", True) if rd else True
+
+                    games.append({
+                        "appid":        appid,
+                        "name":         d.get("name") or item.get("name", ""),
+                        "developer":    devs or None,
+                        "publisher":    pub,
+                        "genres":       genres or None,
+                        "release_date": release_date_str,
+                        "coming_soon":  coming_soon_flag,
+                        "price_krw":    p.get("final", 0) // 100 if p else None,
+                        "discount_pct": p.get("discount_percent", 0) if p else 0,
+                        "header_image": d.get("header_image", ""),
+                    })
+            except Exception as e:
+                print(f"    ⚠ AppID {appid} 조회 실패: {e}")
+            time.sleep(0.5)
+
+        games.sort(key=lambda x: x.get("release_date") or "")
+        print(f"  ✓ {len(games)}개 수집 완료")
+        return games
+    except Exception as e:
+        print(f"  ⚠ 출시 예정 게임 수집 실패: {e}")
+        return []
 
 
 # ── 전일 대비 CCU 증감 계산 ───────────────────────────────────────────────────
@@ -248,7 +238,7 @@ def add_ccu_change(today_df: pd.DataFrame, existing_df: pd.DataFrame) -> pd.Data
         today_df["ccu_change_pct"] = None
         return today_df
 
-    today_str = date.today().isoformat()
+    today_str  = date.today().isoformat()
     prev_dates = existing_df[existing_df["date"] != today_str]["date"].unique()
 
     if len(prev_dates) == 0:
@@ -295,7 +285,9 @@ def collect_today_data() -> pd.DataFrame:
         developer = store["developer"] or g.get("developer")
         publisher = store["publisher"] or g.get("publisher")
         genres    = store["genres"]    or g.get("genre_sp")
-        pub_size  = classify_publisher(publisher)
+
+        # 판매량 추정: SteamSpy owners 중간값
+        owners_estimate = parse_owners_midpoint(g.get("owners", "")) or None
 
         rows.append({
             "date":               today_str,
@@ -304,12 +296,12 @@ def collect_today_data() -> pd.DataFrame:
             "name":               name,
             "developer":          developer,
             "publisher":          publisher,
-            "publisher_size":     pub_size,
             "genres":             genres,
+            "release_date":       store["release_date"],
+            "owners_estimate":    owners_estimate,
             "ccu":                g["ccu"],
             "review_score_pct":   reviews["review_score_pct"],
             "total_reviews":      reviews["total_reviews"],
-            "positive_reviews":   reviews["positive_reviews"],
             "price_krw":          store["price_krw"],
             "discount_pct":       store["discount_pct"],
             "original_price_krw": store["original_price_krw"],
@@ -327,15 +319,14 @@ def analyze_longrun(df: pd.DataFrame, min_days: int) -> pd.DataFrame:
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
 
-    # publisher_size는 마지막 값으로
-    stats = df.groupby(["appid", "name"]).agg(
+    agg_dict = dict(
         days_in_top         = ("date",             "nunique"),
         avg_rank            = ("rank",             "mean"),
         best_rank           = ("rank",             "min"),
         developer           = ("developer",        "last"),
         publisher           = ("publisher",        "last"),
-        publisher_size      = ("publisher_size",   "last"),
         genres              = ("genres",           "last"),
+        release_date        = ("release_date",     "last"),
         avg_ccu             = ("ccu",              "mean"),
         latest_ccu          = ("ccu",              "last"),
         avg_review_score    = ("review_score_pct", "mean"),
@@ -345,7 +336,11 @@ def analyze_longrun(df: pd.DataFrame, min_days: int) -> pd.DataFrame:
         max_discount        = ("discount_pct",     "max"),
         first_seen          = ("date",             "min"),
         last_seen           = ("date",             "max"),
-    ).reset_index()
+    )
+    if "owners_estimate" in df.columns:
+        agg_dict["owners_estimate"] = ("owners_estimate", "last")
+
+    stats = df.groupby(["appid", "name"]).agg(**agg_dict).reset_index()
 
     result = stats[stats["days_in_top"] >= min_days].copy()
     result.sort_values("days_in_top", ascending=False, inplace=True)
@@ -369,7 +364,7 @@ LRN1_FILL = PatternFill("solid", start_color="E8F5E9")
 LRN2_FILL = PatternFill("solid", start_color="FFF3CD")
 LRN4_FILL = PatternFill("solid", start_color="FFD700")
 UP_FILL   = PatternFill("solid", start_color="E8F5E9")
-DOWN_FILL = PatternFill("solid", start_color="FDECEA")
+UPC_FILL  = PatternFill("solid", start_color="F3E5F5")
 CENTER    = Alignment(horizontal="center", vertical="center")
 
 
@@ -386,19 +381,30 @@ def _set_col_widths(ws, widths):
         ws.column_dimensions[get_column_letter(i)].width = w
 
 
-def build_excel(all_df, today_df, lr1, lr2, lr4):
+def build_excel(all_df, today_df, lr1, lr2, lr4, upcoming):
     wb = Workbook()
 
     # ── 시트 1: 일별 스냅샷 ─────────────────────────────────────────────────
     ws1 = wb.active
     ws1.title = "일별 스냅샷"
     SNAP_COLS = {
-        "date": "날짜", "rank": "순위", "appid": "AppID",
-        "name": "게임명", "developer": "개발사", "publisher": "퍼블리셔",
-        "publisher_size": "규모", "genres": "장르",
-        "ccu": "동접자", "ccu_change": "전일증감", "ccu_change_pct": "증감(%)",
-        "review_score_pct": "긍정리뷰(%)", "total_reviews": "총 리뷰수",
-        "price_krw": "가격(₩)", "discount_pct": "할인(%)", "original_price_krw": "정가(₩)",
+        "date":               "날짜",
+        "rank":               "순위",
+        "appid":              "AppID",
+        "name":               "게임명",
+        "developer":          "개발사",
+        "publisher":          "퍼블리셔",
+        "genres":             "장르",
+        "release_date":       "출시일",
+        "owners_estimate":    "판매량(추정)",
+        "ccu":                "동접자",
+        "ccu_change":         "전일증감",
+        "ccu_change_pct":     "증감(%)",
+        "review_score_pct":   "긍정리뷰(%)",
+        "total_reviews":      "리뷰수",
+        "price_krw":          "가격(₩)",
+        "discount_pct":       "할인(%)",
+        "original_price_krw": "정가(₩)",
     }
     ws1.append(list(SNAP_COLS.values()))
     _style_header(ws1, 1, len(SNAP_COLS))
@@ -409,7 +415,7 @@ def build_excel(all_df, today_df, lr1, lr2, lr4):
         if ri % 2 == 0:
             for ci in range(1, len(keys) + 1):
                 ws1.cell(ri, ci).fill = ALT_FILL
-    _set_col_widths(ws1, [12,5,10,34,24,24,8,22,12,10,8,12,12,10,8,10])
+    _set_col_widths(ws1, [12, 5, 10, 34, 24, 24, 22, 12, 14, 12, 10, 8, 10, 10, 10, 8, 10])
     ws1.freeze_panes = "A2"
 
     # ── 시트 2: 오늘의 차트 ─────────────────────────────────────────────────
@@ -417,13 +423,30 @@ def build_excel(all_df, today_df, lr1, lr2, lr4):
     ws2["A1"] = f"Steam 인기 차트 — {date.today().isoformat()}"
     ws2["A1"].font = Font(bold=True, size=13, color="1F4E79")
     ws2.append([])
-    T_COLS = ["순위","게임명","개발사","퍼블리셔","규모","장르","동접자","전일증감","증감(%)","긍정리뷰(%)","가격(₩)","할인율(%)"]
-    T_KEYS = ["rank","name","developer","publisher","publisher_size","genres","ccu","ccu_change","ccu_change_pct","review_score_pct","price_krw","discount_pct"]
+    T_COLS = ["순위", "게임명", "개발사", "퍼블리셔", "장르", "출시일", "판매량(추정)",
+              "동접자", "전일증감(%)", "리뷰수(긍정%)", "가격(₩)", "할인율(%)"]
+    T_KEYS = ["rank", "name", "developer", "publisher", "genres", "release_date",
+              "owners_estimate", "ccu", "_ccu_change", "_review_display",
+              "price_krw", "discount_pct"]
     ws2.append(T_COLS)
     _style_header(ws2, 3, len(T_COLS))
     for ri, row in enumerate(today_df.itertuples(index=False), 4):
         for ci, k in enumerate(T_KEYS, 1):
-            ws2.cell(ri, ci, value=getattr(row, k, None))
+            if k == "_ccu_change":
+                chg = getattr(row, "ccu_change", None)
+                pct = getattr(row, "ccu_change_pct", None)
+                if chg is not None and pct is not None:
+                    sign = "▲" if chg > 0 else ("▼" if chg < 0 else "")
+                    val  = f"{sign} {chg:+,} ({pct:+.1f}%)" if chg != 0 else "±0"
+                else:
+                    val = ""
+                ws2.cell(ri, ci, value=val)
+            elif k == "_review_display":
+                pct = getattr(row, "review_score_pct", 0) or 0
+                cnt = getattr(row, "total_reviews", 0) or 0
+                ws2.cell(ri, ci, value=f"{cnt:,} ({pct}%)" if cnt else "")
+            else:
+                ws2.cell(ri, ci, value=getattr(row, k, None))
         disc = getattr(row, "discount_pct", 0) or 0
         chg  = getattr(row, "ccu_change", None)
         if disc > 0:
@@ -437,22 +460,31 @@ def build_excel(all_df, today_df, lr1, lr2, lr4):
         if fill:
             for ci in range(1, len(T_KEYS) + 1):
                 ws2.cell(ri, ci).fill = fill
-    _set_col_widths(ws2, [5,34,24,24,8,22,12,10,8,12,10,8])
+    _set_col_widths(ws2, [5, 34, 24, 24, 22, 12, 14, 12, 16, 18, 10, 8])
     ws2.freeze_panes = "A4"
 
     # ── 시트 3~5: 롱런 분석 ─────────────────────────────────────────────────
     LR_COLS = {
-        "name": "게임명", "days_in_top": "유지 일수",
-        "avg_rank": "평균 순위", "best_rank": "최고 순위",
-        "developer": "개발사", "publisher": "퍼블리셔", "publisher_size": "규모",
-        "genres": "장르",
-        "avg_ccu": "평균 동접", "latest_ccu": "최근 동접",
-        "avg_review_score": "평균 긍정리뷰(%)", "latest_review_score": "최근 긍정리뷰(%)",
-        "total_reviews": "총 리뷰수",
-        "latest_price": "현재 가격(₩)", "max_discount": "최대 할인(%)",
-        "first_seen": "첫 관측일", "last_seen": "최근 관측일",
+        "name":                "게임명",
+        "days_in_top":         "유지 일수",
+        "avg_rank":            "평균 순위",
+        "best_rank":           "최고 순위",
+        "developer":           "개발사",
+        "publisher":           "퍼블리셔",
+        "genres":              "장르",
+        "release_date":        "출시일",
+        "owners_estimate":     "판매량(추정)",
+        "avg_ccu":             "평균 동접",
+        "latest_ccu":          "최근 동접",
+        "avg_review_score":    "평균 긍정리뷰(%)",
+        "latest_review_score": "최근 긍정리뷰(%)",
+        "total_reviews":       "총 리뷰수",
+        "latest_price":        "현재 가격(₩)",
+        "max_discount":        "최대 할인(%)",
+        "first_seen":          "첫 관측일",
+        "last_seen":           "최근 관측일",
     }
-    LR_WIDTHS = [34,10,10,10,24,24,8,22,12,12,16,16,12,14,10,14,14]
+    LR_WIDTHS = [34, 10, 10, 10, 24, 24, 22, 12, 14, 12, 12, 16, 16, 12, 14, 10, 14, 14]
 
     def write_lr(ws, title, df, fill, min_days):
         ws["A1"] = title
@@ -479,13 +511,43 @@ def build_excel(all_df, today_df, lr1, lr2, lr4):
     write_lr(wb.create_sheet("4주+ 롱런"),
              f"4주(28일)+ 상위 1000위 유지 — {date.today().isoformat()}", lr4, LRN4_FILL, LONGRUN_4W)
 
+    # ── 시트 6: 신작 캘린더 ─────────────────────────────────────────────────
+    ws6 = wb.create_sheet("신작 캘린더")
+    ws6["A1"] = f"Steam 주목 출시 예정 게임 — {date.today().isoformat()}"
+    ws6["A1"].font = Font(bold=True, size=13, color="6A1B9A")
+    ws6.append([])
+    UPC_COLS = ["게임명", "개발사", "퍼블리셔", "장르", "출시예정일", "상태", "가격(₩)", "AppID"]
+    ws6.append(UPC_COLS)
+    _style_header(ws6, 3, len(UPC_COLS))
+    if upcoming:
+        for ri, g in enumerate(upcoming, 4):
+            vals = [
+                g.get("name"),
+                g.get("developer"),
+                g.get("publisher"),
+                g.get("genres"),
+                g.get("release_date"),
+                "출시 예정" if g.get("coming_soon") else "출시됨",
+                g.get("price_krw"),
+                g.get("appid"),
+            ]
+            for ci, v in enumerate(vals, 1):
+                ws6.cell(ri, ci, value=v)
+            for ci in range(1, len(UPC_COLS) + 1):
+                ws6.cell(ri, ci).fill = UPC_FILL
+    else:
+        ws6["A4"] = "출시 예정 게임 데이터를 가져오지 못했습니다."
+        ws6["A4"].font = Font(italic=True, color="888888")
+    _set_col_widths(ws6, [34, 24, 24, 22, 15, 10, 10, 10])
+    ws6.freeze_panes = "A4"
+
     wb.save(EXCEL_PATH)
     print(f"✔ Excel 저장: {EXCEL_PATH}")
 
 
 # ── JSON 출력 ─────────────────────────────────────────────────────────────────
 
-def write_json(today_df, lr1, lr2, lr4):
+def write_json(today_df, lr1, lr2, lr4, upcoming):
     def to_records(df, cols=None):
         if df.empty:
             return []
@@ -493,16 +555,19 @@ def write_json(today_df, lr1, lr2, lr4):
         return json.loads(d.to_json(orient="records", force_ascii=False))
 
     TODAY_COLS = [
-        "rank","appid","name","developer","publisher","publisher_size",
-        "genres","ccu","ccu_change","ccu_change_pct",
-        "review_score_pct","total_reviews","price_krw","discount_pct",
+        "rank", "appid", "name", "developer", "publisher",
+        "genres", "release_date", "owners_estimate",
+        "ccu", "ccu_change", "ccu_change_pct",
+        "review_score_pct", "total_reviews",
+        "price_krw", "discount_pct",
     ]
     data = {
-        "updated":     date.today().isoformat(),
-        "today_chart": to_records(today_df, TODAY_COLS),
-        "longrun_1w":  to_records(lr1),
-        "longrun_2w":  to_records(lr2),
-        "longrun_4w":  to_records(lr4),
+        "updated":        date.today().isoformat(),
+        "today_chart":    to_records(today_df, TODAY_COLS),
+        "longrun_1w":     to_records(lr1),
+        "longrun_2w":     to_records(lr2),
+        "longrun_4w":     to_records(lr4),
+        "upcoming_games": upcoming,
     }
     os.makedirs(os.path.dirname(JSON_PATH), exist_ok=True)
     with open(JSON_PATH, "w", encoding="utf-8") as f:
@@ -558,9 +623,12 @@ def main():
     print(f"▶ 2주+ 롱런 게임: {len(lr2)}개")
     print(f"▶ 4주+ 롱런 게임: {len(lr4)}개")
 
-    # 6. 저장
-    build_excel(all_df, today_df, lr1, lr2, lr4)
-    write_json(today_df, lr1, lr2, lr4)
+    # 6. 출시 예정 게임 수집
+    upcoming = fetch_upcoming_games()
+
+    # 7. 저장
+    build_excel(all_df, today_df, lr1, lr2, lr4, upcoming)
+    write_json(today_df, lr1, lr2, lr4, upcoming)
     print("  완료!\n")
 
 
