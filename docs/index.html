@@ -12,6 +12,7 @@
     --gold: #f5c518; --gold-bg: #2e2600;
     --red: #c94040; --red-bg: #2e1010;
     --mint: #4ab89a; --mint-bg: #0d2a22;
+    --purple: #a855f7; --purple-bg: #1e0a36;
     --up: #4fa048; --down: #c94040;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -105,16 +106,7 @@
   .muted-cell { color: var(--muted); font-size: 12px; max-width: 160px; }
   .num { font-variant-numeric: tabular-nums; }
 
-  .badge-pub {
-    display: inline-block; border-radius: 3px; padding: 1px 6px;
-    font-size: 10px; font-weight: 700;
-  }
-  .pub-대형    { background: #1a2e4a; color: var(--accent); border: 1px solid var(--accent); }
-  .pub-중형    { background: #2a2010; color: var(--gold);   border: 1px solid var(--gold); }
-  .pub-인디\/소형 { background: #1a2a1a; color: var(--mint);  border: 1px solid var(--mint); }
-  .pub-미확인  { background: #222; color: var(--muted); border: 1px solid var(--border); }
-
-  .ccu-change { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ccu-change { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ccu-up   { color: var(--up); }
   .ccu-down { color: var(--down); }
 
@@ -122,16 +114,54 @@
     display: inline-block; background: var(--green); color: #fff;
     font-size: 10px; font-weight: 700; border-radius: 3px; padding: 1px 6px;
   }
-  .badge-score { display: inline-flex; align-items: center; font-weight: 600; }
-  .score-high { color: #66c94a; }
-  .score-mid  { color: #c9be4a; }
-  .score-low  { color: var(--red); }
+  .review-cell { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .score-high { color: #66c94a; font-weight: 600; }
+  .score-mid  { color: #c9be4a; font-weight: 600; }
+  .score-low  { color: var(--red); font-weight: 600; }
   .price-free { color: var(--accent); font-weight: 600; }
 
   .days-badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
   .days-4w { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); }
   .days-2w { background: #1a2a3a; color: var(--accent); border: 1px solid var(--accent); }
   .days-1w { background: var(--mint-bg); color: var(--mint); border: 1px solid var(--mint); }
+
+  /* ── 신작 캘린더 ── */
+  .upcoming-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .upcoming-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color .2s, transform .15s;
+  }
+  .upcoming-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+  .upcoming-card img {
+    width: 100%; height: 130px; object-fit: cover; display: block;
+    background: #0e1923;
+  }
+  .upcoming-info { padding: 12px 14px; }
+  .upcoming-name {
+    font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .upcoming-name a { color: inherit; text-decoration: none; }
+  .upcoming-name a:hover { color: var(--accent); }
+  .upcoming-meta { display: flex; flex-direction: column; gap: 3px; }
+  .upcoming-row { display: flex; justify-content: space-between; font-size: 11px; }
+  .upcoming-key { color: var(--muted); }
+  .upcoming-val { color: var(--text); text-align: right; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .release-badge {
+    display: inline-block; border-radius: 4px; padding: 2px 8px;
+    font-size: 11px; font-weight: 700; margin-top: 8px;
+  }
+  .badge-soon   { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); }
+  .badge-out    { background: var(--green-bg); color: var(--up); border: 1px solid var(--up); }
+  .upcoming-empty {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+    grid-column: 1 / -1;
+  }
 
   /* ── 페이지네이션 ── */
   .pagination {
@@ -155,6 +185,7 @@
     header, .tabs, .content { padding-left: 12px; padding-right: 12px; }
     .stats { flex-direction: column; }
     .f-input.wide { width: 100%; }
+    .upcoming-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -170,29 +201,21 @@
   <div class="tab" onclick="switchTab('w1')">1주+ 롱런</div>
   <div class="tab" onclick="switchTab('w2')">2주+ 롱런</div>
   <div class="tab" onclick="switchTab('w4')">4주+ 롱런 🏆</div>
+  <div class="tab" onclick="switchTab('upcoming')">🗓 신작 캘린더</div>
 </div>
 
 <div class="content">
 
-  <!-- 오늘의 차트 -->
+  <!-- ── 오늘의 차트 ── -->
   <div class="panel active" id="panel-today">
     <div class="stats" id="stats-today"></div>
-    <div class="filter-bar" id="filters-today">
+    <div class="filter-bar">
       <div class="filter-group">
         <input class="f-input wide" id="search-today" placeholder="🔍 게임명 / 개발사 / 퍼블리셔 검색" oninput="applyFilters('today')" />
       </div>
       <div class="filter-group">
         <span class="filter-label">장르</span>
         <select class="f-select" id="genre-today" onchange="applyFilters('today')"><option value="">전체</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">규모</span>
-        <select class="f-select" id="pubsize-today" onchange="applyFilters('today')">
-          <option value="">전체</option>
-          <option value="대형">대형</option>
-          <option value="중형">중형</option>
-          <option value="인디/소형">인디/소형</option>
-        </select>
       </div>
       <div class="filter-group">
         <span class="filter-label">동접</span>
@@ -210,13 +233,14 @@
           <th onclick="sortTable('today',1)">게임명</th>
           <th onclick="sortTable('today',2)">개발사</th>
           <th onclick="sortTable('today',3)">퍼블리셔</th>
-          <th onclick="sortTable('today',4)">규모</th>
-          <th onclick="sortTable('today',5)">장르</th>
-          <th onclick="sortTable('today',6)">동접자</th>
-          <th onclick="sortTable('today',7)">전일증감(%)</th>
-          <th onclick="sortTable('today',8)">긍정리뷰</th>
-          <th onclick="sortTable('today',9)">가격</th>
-          <th onclick="sortTable('today',10)">할인</th>
+          <th onclick="sortTable('today',4)">장르</th>
+          <th onclick="sortTable('today',5)">출시일</th>
+          <th onclick="sortTable('today',6)">판매량(추정)</th>
+          <th onclick="sortTable('today',7)">동접자</th>
+          <th onclick="sortTable('today',8)">전일증감(%)</th>
+          <th onclick="sortTable('today',9)">리뷰수(긍정%)</th>
+          <th onclick="sortTable('today',10)">가격</th>
+          <th onclick="sortTable('today',11)">할인</th>
         </tr></thead>
         <tbody id="tbody-today"></tbody>
       </table>
@@ -224,7 +248,7 @@
     <div class="pagination" id="pg-today"></div>
   </div>
 
-  <!-- 1주+ 롱런 -->
+  <!-- ── 1주+ 롱런 ── -->
   <div class="panel" id="panel-w1">
     <div class="filter-bar">
       <div class="filter-group">
@@ -233,15 +257,6 @@
       <div class="filter-group">
         <span class="filter-label">장르</span>
         <select class="f-select" id="genre-w1" onchange="applyFilters('w1')"><option value="">전체</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">규모</span>
-        <select class="f-select" id="pubsize-w1" onchange="applyFilters('w1')">
-          <option value="">전체</option>
-          <option value="대형">대형</option>
-          <option value="중형">중형</option>
-          <option value="인디/소형">인디/소형</option>
-        </select>
       </div>
       <div class="filter-group">
         <span class="filter-label">동접</span>
@@ -261,13 +276,14 @@
           <th onclick="sortTable('w1',3)">최고순위</th>
           <th onclick="sortTable('w1',4)">개발사</th>
           <th onclick="sortTable('w1',5)">퍼블리셔</th>
-          <th onclick="sortTable('w1',6)">규모</th>
-          <th onclick="sortTable('w1',7)">장르</th>
-          <th onclick="sortTable('w1',8)">평균동접</th>
-          <th onclick="sortTable('w1',9)">최근동접</th>
-          <th onclick="sortTable('w1',10)">긍정리뷰</th>
-          <th onclick="sortTable('w1',11)">가격</th>
-          <th onclick="sortTable('w1',12)">첫관측일</th>
+          <th onclick="sortTable('w1',6)">장르</th>
+          <th onclick="sortTable('w1',7)">출시일</th>
+          <th onclick="sortTable('w1',8)">판매량(추정)</th>
+          <th onclick="sortTable('w1',9)">평균동접</th>
+          <th onclick="sortTable('w1',10)">최근동접</th>
+          <th onclick="sortTable('w1',11)">리뷰수(긍정%)</th>
+          <th onclick="sortTable('w1',12)">가격</th>
+          <th onclick="sortTable('w1',13)">첫관측일</th>
         </tr></thead>
         <tbody id="tbody-w1"></tbody>
       </table>
@@ -276,7 +292,7 @@
     <div class="pagination" id="pg-w1"></div>
   </div>
 
-  <!-- 2주+ 롱런 -->
+  <!-- ── 2주+ 롱런 ── -->
   <div class="panel" id="panel-w2">
     <div class="filter-bar">
       <div class="filter-group">
@@ -285,15 +301,6 @@
       <div class="filter-group">
         <span class="filter-label">장르</span>
         <select class="f-select" id="genre-w2" onchange="applyFilters('w2')"><option value="">전체</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">규모</span>
-        <select class="f-select" id="pubsize-w2" onchange="applyFilters('w2')">
-          <option value="">전체</option>
-          <option value="대형">대형</option>
-          <option value="중형">중형</option>
-          <option value="인디/소형">인디/소형</option>
-        </select>
       </div>
       <div class="filter-group">
         <span class="filter-label">동접</span>
@@ -313,13 +320,14 @@
           <th onclick="sortTable('w2',3)">최고순위</th>
           <th onclick="sortTable('w2',4)">개발사</th>
           <th onclick="sortTable('w2',5)">퍼블리셔</th>
-          <th onclick="sortTable('w2',6)">규모</th>
-          <th onclick="sortTable('w2',7)">장르</th>
-          <th onclick="sortTable('w2',8)">평균동접</th>
-          <th onclick="sortTable('w2',9)">최근동접</th>
-          <th onclick="sortTable('w2',10)">긍정리뷰</th>
-          <th onclick="sortTable('w2',11)">가격</th>
-          <th onclick="sortTable('w2',12)">첫관측일</th>
+          <th onclick="sortTable('w2',6)">장르</th>
+          <th onclick="sortTable('w2',7)">출시일</th>
+          <th onclick="sortTable('w2',8)">판매량(추정)</th>
+          <th onclick="sortTable('w2',9)">평균동접</th>
+          <th onclick="sortTable('w2',10)">최근동접</th>
+          <th onclick="sortTable('w2',11)">리뷰수(긍정%)</th>
+          <th onclick="sortTable('w2',12)">가격</th>
+          <th onclick="sortTable('w2',13)">첫관측일</th>
         </tr></thead>
         <tbody id="tbody-w2"></tbody>
       </table>
@@ -328,7 +336,7 @@
     <div class="pagination" id="pg-w2"></div>
   </div>
 
-  <!-- 4주+ 롱런 -->
+  <!-- ── 4주+ 롱런 ── -->
   <div class="panel" id="panel-w4">
     <div class="filter-bar">
       <div class="filter-group">
@@ -337,15 +345,6 @@
       <div class="filter-group">
         <span class="filter-label">장르</span>
         <select class="f-select" id="genre-w4" onchange="applyFilters('w4')"><option value="">전체</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">규모</span>
-        <select class="f-select" id="pubsize-w4" onchange="applyFilters('w4')">
-          <option value="">전체</option>
-          <option value="대형">대형</option>
-          <option value="중형">중형</option>
-          <option value="인디/소형">인디/소형</option>
-        </select>
       </div>
       <div class="filter-group">
         <span class="filter-label">동접</span>
@@ -365,13 +364,14 @@
           <th onclick="sortTable('w4',3)">최고순위</th>
           <th onclick="sortTable('w4',4)">개발사</th>
           <th onclick="sortTable('w4',5)">퍼블리셔</th>
-          <th onclick="sortTable('w4',6)">규모</th>
-          <th onclick="sortTable('w4',7)">장르</th>
-          <th onclick="sortTable('w4',8)">평균동접</th>
-          <th onclick="sortTable('w4',9)">최근동접</th>
-          <th onclick="sortTable('w4',10)">긍정리뷰</th>
-          <th onclick="sortTable('w4',11)">가격</th>
-          <th onclick="sortTable('w4',12)">첫관측일</th>
+          <th onclick="sortTable('w4',6)">장르</th>
+          <th onclick="sortTable('w4',7)">출시일</th>
+          <th onclick="sortTable('w4',8)">판매량(추정)</th>
+          <th onclick="sortTable('w4',9)">평균동접</th>
+          <th onclick="sortTable('w4',10)">최근동접</th>
+          <th onclick="sortTable('w4',11)">리뷰수(긍정%)</th>
+          <th onclick="sortTable('w4',12)">가격</th>
+          <th onclick="sortTable('w4',13)">첫관측일</th>
         </tr></thead>
         <tbody id="tbody-w4"></tbody>
       </table>
@@ -380,78 +380,97 @@
     <div class="pagination" id="pg-w4"></div>
   </div>
 
+  <!-- ── 신작 캘린더 ── -->
+  <div class="panel" id="panel-upcoming">
+    <div class="stats" id="stats-upcoming"></div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:14px;">
+      Steam이 선정한 주목 출시 예정 타이틀 · 매일 자동 업데이트
+    </div>
+    <div class="upcoming-grid" id="upcoming-grid"></div>
+  </div>
+
 </div>
 
 <script>
 const PAGE_SIZE = 50;
-const pages = { today: 1, w1: 1, w2: 1, w4: 1 };
-const filtered = { today: [], w1: [], w2: [], w4: [] };
+const pages     = { today:1, w1:1, w2:1, w4:1 };
+const filtered  = { today:[], w1:[], w2:[], w4:[] };
 const sortState = {
-  today: {col:-1,asc:true}, w1: {col:-1,asc:true},
-  w2: {col:-1,asc:true},    w4: {col:-1,asc:true}
+  today:{col:-1,asc:true}, w1:{col:-1,asc:true},
+  w2:{col:-1,asc:true},    w4:{col:-1,asc:true}
 };
 
-const fmt  = n => (n == null || n === '') ? '-' : Number(n).toLocaleString('ko-KR');
-const fmtW = n => n == null ? '<span class="price-free">무료</span>' : `₩${Number(n).toLocaleString('ko-KR')}`;
+const fmt   = n => (n==null||n==='') ? '-' : Number(n).toLocaleString('ko-KR');
+const fmtW  = n => n==null ? '<span class="price-free">무료</span>' : `₩${Number(n).toLocaleString('ko-KR')}`;
+const fmtM  = n => { // 판매량 축약
+  if (n==null) return '-';
+  if (n>=1e8) return (n/1e8).toFixed(1)+'억';
+  if (n>=1e4) return Math.round(n/1e4)+'만';
+  return Number(n).toLocaleString('ko-KR');
+};
 
 function scoreClass(v) {
-  return v >= 95 ? 'score-high' : v >= 75 ? 'score-mid' : 'score-low';
+  return v>=95 ? 'score-high' : v>=75 ? 'score-mid' : 'score-low';
 }
 
-function pubBadge(size) {
-  const cls = `pub-${(size||'미확인').replace('/','\\/')}`;
-  return `<span class="badge-pub ${cls}">${size || '미확인'}</span>`;
+function reviewFmt(cnt, pct) {
+  if (!cnt && !pct) return '-';
+  const cls = scoreClass(pct||0);
+  return `<span class="review-cell">${fmt(cnt)} <span class="${cls}">(${pct||0}%)</span></span>`;
 }
 
 function ccuChangeFmt(chg, pct) {
-  if (chg == null) return '-';
-  const sign  = chg > 0 ? '+' : '';
-  const cls   = chg > 0 ? 'ccu-up' : chg < 0 ? 'ccu-down' : '';
-  const arrow = chg > 0 ? '▲' : chg < 0 ? '▼' : '–';
-  const pctStr = pct != null ? ` (${chg > 0 ? '+' : ''}${pct}%)` : '';
+  if (chg==null) return '<span style="color:var(--muted)">-</span>';
+  const sign  = chg>0 ? '+' : '';
+  const cls   = chg>0 ? 'ccu-up' : chg<0 ? 'ccu-down' : '';
+  const arrow = chg>0 ? '▲' : chg<0 ? '▼' : '–';
+  const pctStr = pct!=null ? ` (${sign}${pct}%)` : '';
   return `<span class="ccu-change ${cls}">${arrow} ${sign}${Number(chg).toLocaleString()}${pctStr}</span>`;
 }
 
-// ── 탭 전환 ─────────────────────────────────────────────────────────────────
+// ── 탭 전환 ───────────────────────────────────────────────────────────────────
 function switchTab(id) {
-  const ids = ['today','w1','w2','w4'];
+  const ids = ['today','w1','w2','w4','upcoming'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`panel-${id}`).classList.add('active');
 }
 
-// ── 장르 드롭다운 ────────────────────────────────────────────────────────────
+// ── 장르 드롭다운 ──────────────────────────────────────────────────────────────
 function buildGenreOptions(key, rows) {
   const set = new Set();
   rows.forEach(g => { if (g.genres) g.genres.split(', ').forEach(x => set.add(x.trim())); });
   const sel = document.getElementById(`genre-${key}`);
+  if (!sel) return;
   [...set].sort().forEach(g => {
-    const o = document.createElement('option'); o.value = o.textContent = g; sel.appendChild(o);
+    const o = document.createElement('option');
+    o.value = o.textContent = g;
+    sel.appendChild(o);
   });
 }
 
-// ── 필터 적용 ────────────────────────────────────────────────────────────────
+// ── 필터 적용 ─────────────────────────────────────────────────────────────────
 function applyFilters(key) {
-  const q       = (document.getElementById(`search-${key}`)?.value || '').toLowerCase();
-  const genre   = document.getElementById(`genre-${key}`)?.value || '';
-  const pubsize = document.getElementById(`pubsize-${key}`)?.value || '';
-  const ccuMin  = parseInt(document.getElementById(`ccu-min-${key}`)?.value) || 0;
-  const ccuMaxV = document.getElementById(`ccu-max-${key}`)?.value;
-  const ccuMax  = ccuMaxV ? parseInt(ccuMaxV) : Infinity;
-  const isToday = key === 'today';
+  const q      = (document.getElementById(`search-${key}`)?.value||'').toLowerCase();
+  const genre  = document.getElementById(`genre-${key}`)?.value||'';
+  const ccuMin = parseInt(document.getElementById(`ccu-min-${key}`)?.value)||0;
+  const ccuMaxV= document.getElementById(`ccu-max-${key}`)?.value;
+  const ccuMax = ccuMaxV ? parseInt(ccuMaxV) : Infinity;
+  const isToday= key==='today';
 
-  const src = window._data?.[key === 'today' ? 'today_chart' : `longrun_${key}`] || [];
+  const src = isToday
+    ? (window._data?.today_chart||[])
+    : (window._data?.[`longrun_${key}`]||[]);
 
   filtered[key] = src.filter(g => {
-    const nameMatch = !q ||
+    const nameMatch  = !q ||
       (g.name||'').toLowerCase().includes(q) ||
       (g.developer||'').toLowerCase().includes(q) ||
       (g.publisher||'').toLowerCase().includes(q);
-    const genreMatch   = !genre   || (g.genres||'').includes(genre);
-    const pubsizeMatch = !pubsize || (g.publisher_size||'') === pubsize;
-    const ccuVal = isToday ? (g.ccu||0) : (g.latest_ccu||0);
-    const ccuMatch = ccuVal >= ccuMin && ccuVal <= ccuMax;
-    return nameMatch && genreMatch && pubsizeMatch && ccuMatch;
+    const genreMatch = !genre || (g.genres||'').includes(genre);
+    const ccuVal     = isToday ? (g.ccu||0) : (g.latest_ccu||0);
+    const ccuMatch   = ccuVal>=ccuMin && ccuVal<=ccuMax;
+    return nameMatch && genreMatch && ccuMatch;
   });
 
   pages[key] = 1;
@@ -460,48 +479,46 @@ function applyFilters(key) {
 }
 
 function resetFilters(key) {
-  ['search','genre','pubsize','ccu-min','ccu-max'].forEach(id => {
+  ['search','genre','ccu-min','ccu-max'].forEach(id => {
     const el = document.getElementById(`${id}-${key}`);
-    if (el) el.tagName === 'SELECT' ? el.value = '' : el.value = '';
+    if (el) el.value='';
   });
   applyFilters(key);
 }
 
-// ── 페이지 렌더 ──────────────────────────────────────────────────────────────
+// ── 페이지 렌더 ───────────────────────────────────────────────────────────────
 function renderPage(key) {
-  const isToday = key === 'today';
+  const isToday = key==='today';
   const rows    = filtered[key];
-  const total   = rows.length;
   const page    = pages[key];
-  const start   = (page - 1) * PAGE_SIZE;
-  const slice   = rows.slice(start, start + PAGE_SIZE);
+  const start   = (page-1)*PAGE_SIZE;
+  const slice   = rows.slice(start, start+PAGE_SIZE);
+  const tbody   = document.getElementById(`tbody-${key}`);
 
-  const tbody = document.getElementById(`tbody-${key}`);
   if (isToday) {
     tbody.innerHTML = slice.map(g => {
-      const disc   = g.discount_pct || 0;
+      const disc   = g.discount_pct||0;
       const chg    = g.ccu_change;
-      let rowCls = disc > 0 ? 'row-discount' : (chg > 0 ? 'row-up' : chg < 0 ? 'row-down' : '');
-      const rankCls = g.rank <= 10 ? 'rank rank-top' : 'rank';
-      const sCls    = scoreClass(g.review_score_pct);
+      const rowCls = disc>0 ? 'row-discount' : (chg>0 ? 'row-up' : chg<0 ? 'row-down' : '');
+      const rankCls= g.rank<=10 ? 'rank rank-top' : 'rank';
       return `<tr class="${rowCls}">
         <td class="${rankCls}">${g.rank}</td>
         <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
         <td class="muted-cell">${g.developer||'-'}</td>
         <td class="muted-cell">${g.publisher||'-'}</td>
-        <td>${pubBadge(g.publisher_size)}</td>
         <td class="muted-cell">${g.genres||'-'}</td>
+        <td class="muted-cell" style="white-space:nowrap">${g.release_date||'-'}</td>
+        <td class="num">${fmtM(g.owners_estimate)}</td>
         <td class="num">${fmt(g.ccu)}</td>
         <td>${ccuChangeFmt(g.ccu_change, g.ccu_change_pct)}</td>
-        <td><span class="badge-score ${sCls}">${g.review_score_pct}%</span></td>
+        <td>${reviewFmt(g.total_reviews, g.review_score_pct)}</td>
         <td>${fmtW(g.price_krw)}</td>
-        <td>${disc > 0 ? `<span class="badge-discount">-${disc}%</span>` : '-'}</td>
+        <td>${disc>0 ? `<span class="badge-discount">-${disc}%</span>` : '-'}</td>
       </tr>`;
     }).join('');
   } else {
     const badgeCls = key==='w4' ? 'days-4w' : key==='w2' ? 'days-2w' : 'days-1w';
     tbody.innerHTML = slice.map(g => {
-      const sCls = scoreClass(g.avg_review_score);
       return `<tr>
         <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
         <td><span class="days-badge ${badgeCls}">${g.days_in_top}일</span></td>
@@ -509,106 +526,166 @@ function renderPage(key) {
         <td class="num">${g.best_rank}</td>
         <td class="muted-cell">${g.developer||'-'}</td>
         <td class="muted-cell">${g.publisher||'-'}</td>
-        <td>${pubBadge(g.publisher_size)}</td>
         <td class="muted-cell">${g.genres||'-'}</td>
+        <td class="muted-cell" style="white-space:nowrap">${g.release_date||'-'}</td>
+        <td class="num">${fmtM(g.owners_estimate)}</td>
         <td class="num">${fmt(g.avg_ccu)}</td>
         <td class="num">${fmt(g.latest_ccu)}</td>
-        <td><span class="badge-score ${sCls}">${g.avg_review_score}%</span></td>
+        <td>${reviewFmt(g.total_reviews, g.avg_review_score)}</td>
         <td>${fmtW(g.latest_price)}</td>
-        <td style="color:var(--muted)">${g.first_seen}</td>
+        <td style="color:var(--muted)">${g.first_seen||'-'}</td>
       </tr>`;
     }).join('');
 
     const tableEl = document.getElementById(`table-${key}`);
     const emptyEl = document.getElementById(`empty-${key}`);
-    if (total === 0 && (window._data?.[`longrun_${key}`]||[]).length === 0) {
-      tableEl.style.display='none'; emptyEl.style.display='block';
-    } else {
-      tableEl.style.display=''; emptyEl.style.display='none';
-    }
+    const srcLen  = (window._data?.[`longrun_${key}`]||[]).length;
+    if (srcLen===0) { tableEl.style.display='none'; emptyEl.style.display='block'; }
+    else            { tableEl.style.display='';      emptyEl.style.display='none'; }
   }
 
-  renderPagination(key, total);
+  renderPagination(key, rows.length);
 }
 
-// ── 페이지네이션 렌더 ────────────────────────────────────────────────────────
+// ── 페이지네이션 ──────────────────────────────────────────────────────────────
 function renderPagination(key, total) {
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(total/PAGE_SIZE);
   const cur = pages[key];
   const pg  = document.getElementById(`pg-${key}`);
-  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  if (totalPages<=1) { pg.innerHTML=''; return; }
 
   let html = `<button class="pg-btn" onclick="goPage('${key}',${cur-1})" ${cur===1?'disabled':''}>‹</button>`;
-  const range = [];
-  for (let i=1; i<=totalPages; i++) {
-    if (i===1 || i===totalPages || (i>=cur-2 && i<=cur+2)) range.push(i);
-    else if (range[range.length-1] !== '…') range.push('…');
+  const range=[];
+  for (let i=1;i<=totalPages;i++) {
+    if (i===1||i===totalPages||(i>=cur-2&&i<=cur+2)) range.push(i);
+    else if (range[range.length-1]!=='…') range.push('…');
   }
   range.forEach(p => {
-    if (p==='…') html += `<span class="pg-info">…</span>`;
-    else html += `<button class="pg-btn ${p===cur?'active':''}" onclick="goPage('${key}',${p})">${p}</button>`;
+    if (p==='…') html+=`<span class="pg-info">…</span>`;
+    else html+=`<button class="pg-btn ${p===cur?'active':''}" onclick="goPage('${key}',${p})">${p}</button>`;
   });
-  html += `<button class="pg-btn" onclick="goPage('${key}',${cur+1})" ${cur===totalPages?'disabled':''}>›</button>`;
-  html += `<span class="pg-info">${total}개 중 ${(cur-1)*PAGE_SIZE+1}~${Math.min(cur*PAGE_SIZE,total)}</span>`;
-  pg.innerHTML = html;
+  html+=`<button class="pg-btn" onclick="goPage('${key}',${cur+1})" ${cur===totalPages?'disabled':''}>›</button>`;
+  html+=`<span class="pg-info">${total}개 중 ${(cur-1)*PAGE_SIZE+1}~${Math.min(cur*PAGE_SIZE,total)}</span>`;
+  pg.innerHTML=html;
 }
 
 function goPage(key, p) {
-  const totalPages = Math.ceil(filtered[key].length / PAGE_SIZE);
-  if (p < 1 || p > totalPages) return;
-  pages[key] = p;
+  const totalPages = Math.ceil(filtered[key].length/PAGE_SIZE);
+  if (p<1||p>totalPages) return;
+  pages[key]=p;
   renderPage(key);
-  document.getElementById(`table-${key}`)?.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById(`table-${key}`)?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-// ── 정렬 ────────────────────────────────────────────────────────────────────
+// ── 정렬 ─────────────────────────────────────────────────────────────────────
 function sortTable(key, col) {
   const st = sortState[key];
-  if (st.col === col) st.asc = !st.asc;
-  else { st.col = col; st.asc = true; }
+  if (st.col===col) st.asc=!st.asc;
+  else { st.col=col; st.asc=true; }
 
-  filtered[key].sort((a, b) => {
-    const isToday = key === 'today';
-    const fields = isToday
-      ? ['rank','name','developer','publisher','publisher_size','genres','ccu','ccu_change','review_score_pct','price_krw','discount_pct']
-      : ['name','days_in_top','avg_rank','best_rank','developer','publisher','publisher_size','genres','avg_ccu','latest_ccu','avg_review_score','latest_price','first_seen'];
-    const field = fields[col];
-    const av = a[field], bv = b[field];
-    if (av == null && bv == null) return 0;
-    if (av == null) return 1;
-    if (bv == null) return -1;
-    const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv), 'ko');
+  const todayFields = ['rank','name','developer','publisher','genres','release_date','owners_estimate','ccu','ccu_change','review_score_pct','price_krw','discount_pct'];
+  const lrFields    = ['name','days_in_top','avg_rank','best_rank','developer','publisher','genres','release_date','owners_estimate','avg_ccu','latest_ccu','avg_review_score','latest_price','first_seen'];
+  const fields = key==='today' ? todayFields : lrFields;
+  const field  = fields[col];
+
+  filtered[key].sort((a,b) => {
+    const av=a[field], bv=b[field];
+    if (av==null&&bv==null) return 0;
+    if (av==null) return 1;
+    if (bv==null) return -1;
+    const cmp = typeof av==='number' ? av-bv : String(av).localeCompare(String(bv),'ko');
     return st.asc ? cmp : -cmp;
   });
 
-  pages[key] = 1;
+  pages[key]=1;
   renderPage(key);
-
-  document.querySelectorAll(`#table-${key} thead th`).forEach((th,i) => {
+  document.querySelectorAll(`#table-${key} thead th`).forEach((th,i)=>{
     th.classList.remove('sort-asc','sort-desc');
-    if (i === col) th.classList.add(st.asc ? 'sort-asc' : 'sort-desc');
+    if (i===col) th.classList.add(st.asc?'sort-asc':'sort-desc');
   });
 }
 
-// ── 데이터 로드 ──────────────────────────────────────────────────────────────
-fetch('data.json?_=' + Date.now())
+// ── 신작 캘린더 렌더 ──────────────────────────────────────────────────────────
+function renderUpcoming(upcoming) {
+  const grid = document.getElementById('upcoming-grid');
+  if (!upcoming||upcoming.length===0) {
+    grid.innerHTML = '<div class="upcoming-empty"><div style="font-size:40px">🗓</div><p style="margin-top:8px;font-size:13px">출시 예정 게임 데이터가 없습니다.</p></div>';
+    document.getElementById('stats-upcoming').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('stats-upcoming').innerHTML = `
+    <div class="stat-card"><div class="stat-label">🗓 주목 신작</div><div class="stat-value">${upcoming.length}</div><div class="stat-sub">Steam 선정 출시 예정</div></div>
+    <div class="stat-card"><div class="stat-label">💰 평균 예상 가격</div><div class="stat-value" style="font-size:15px">${(()=>{
+      const priced = upcoming.filter(g=>g.price_krw!=null);
+      if (!priced.length) return '미정';
+      const avg = Math.round(priced.reduce((s,g)=>s+g.price_krw,0)/priced.length);
+      return '₩'+avg.toLocaleString('ko-KR');
+    })()}</div><div class="stat-sub">유료 타이틀 기준</div></div>
+  `;
+
+  grid.innerHTML = upcoming.map(g => {
+    const isSoon = g.coming_soon;
+    const badgeCls = isSoon ? 'badge-soon' : 'badge-out';
+    const badgeText = isSoon ? '출시 예정' : '출시됨';
+    const imgSrc = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
+    return `
+      <div class="upcoming-card">
+        <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
+          <img src="${imgSrc}" alt="${g.name}" loading="lazy" onerror="this.style.display='none'">
+        </a>
+        <div class="upcoming-info">
+          <div class="upcoming-name">
+            <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a>
+          </div>
+          <div class="upcoming-meta">
+            <div class="upcoming-row">
+              <span class="upcoming-key">개발사</span>
+              <span class="upcoming-val">${g.developer||'-'}</span>
+            </div>
+            <div class="upcoming-row">
+              <span class="upcoming-key">퍼블리셔</span>
+              <span class="upcoming-val">${g.publisher||'-'}</span>
+            </div>
+            <div class="upcoming-row">
+              <span class="upcoming-key">장르</span>
+              <span class="upcoming-val">${g.genres||'-'}</span>
+            </div>
+            <div class="upcoming-row">
+              <span class="upcoming-key">출시일</span>
+              <span class="upcoming-val" style="color:#fff;font-weight:600">${g.release_date||'미정'}</span>
+            </div>
+            <div class="upcoming-row">
+              <span class="upcoming-key">가격</span>
+              <span class="upcoming-val">${g.price_krw==null ? '미정' : g.price_krw===0 ? '무료' : '₩'+g.price_krw.toLocaleString('ko-KR')}</span>
+            </div>
+          </div>
+          <span class="release-badge ${badgeCls}">${badgeText}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── 데이터 로드 ───────────────────────────────────────────────────────────────
+fetch('data.json?_='+Date.now())
   .then(r => r.json())
   .then(data => {
     window._data = {
-      today_chart: data.today_chart || [],
-      longrun_w1:  data.longrun_1w  || [],
-      longrun_w2:  data.longrun_2w  || [],
-      longrun_w4:  data.longrun_4w  || [],
+      today_chart: data.today_chart||[],
+      longrun_w1:  data.longrun_1w ||[],
+      longrun_w2:  data.longrun_2w ||[],
+      longrun_w4:  data.longrun_4w ||[],
     };
 
     document.getElementById('updated-label').textContent = `마지막 업데이트: ${data.updated}`;
 
     // 오늘의 차트 통계
-    const rows = data.today_chart || [];
+    const rows = data.today_chart||[];
     const top  = rows[0];
-    const onSale   = rows.filter(g => g.discount_pct > 0).length;
-    const avgScore = rows.length ? (rows.reduce((s,g)=>s+(g.review_score_pct||0),0)/rows.length).toFixed(1) : 0;
-    const rising   = rows.filter(g => (g.ccu_change||0) > 0).length;
+    const onSale  = rows.filter(g=>g.discount_pct>0).length;
+    const avgScore= rows.length ? (rows.reduce((s,g)=>s+(g.review_score_pct||0),0)/rows.length).toFixed(1) : 0;
+    const rising  = rows.filter(g=>(g.ccu_change||0)>0).length;
+    const totalOwners = rows.reduce((s,g)=>s+(g.owners_estimate||0),0);
     document.getElementById('stats-today').innerHTML = `
       <div class="stat-card"><div class="stat-label">🏅 1위 게임</div><div class="stat-value" style="font-size:14px">${top?.name||'-'}</div><div class="stat-sub">동접 ${fmt(top?.ccu)}</div></div>
       <div class="stat-card"><div class="stat-label">👥 추적 게임</div><div class="stat-value">${rows.length}</div><div class="stat-sub">상위 1000위 기준</div></div>
@@ -617,11 +694,14 @@ fetch('data.json?_=' + Date.now())
       <div class="stat-card"><div class="stat-label">⭐ 평균 긍정리뷰</div><div class="stat-value">${avgScore}%</div><div class="stat-sub">전체 평균</div></div>
     `;
 
-    // 장르 옵션 구성
+    // 장르 옵션
     buildGenreOptions('today', rows);
-    buildGenreOptions('w1',  data.longrun_1w  || []);
-    buildGenreOptions('w2',  data.longrun_2w  || []);
-    buildGenreOptions('w4',  data.longrun_4w  || []);
+    buildGenreOptions('w1', data.longrun_1w||[]);
+    buildGenreOptions('w2', data.longrun_2w||[]);
+    buildGenreOptions('w4', data.longrun_4w||[]);
+
+    // 신작 캘린더
+    renderUpcoming(data.upcoming_games||[]);
 
     // 초기 렌더
     ['today','w1','w2','w4'].forEach(k => applyFilters(k));
