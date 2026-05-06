@@ -854,10 +854,20 @@ function buildDayTabs(upcoming) {
     const d = g.release_date||NO_DATE;
     counts[d] = (counts[d]||0)+1;
   });
+
+  // 날짜 파싱 헬퍼 (정렬용)
+  function parseSortDate(str) {
+    if (!str || str === NO_DATE) return Infinity;
+    // "7 May, 2026" / "May 7, 2026" / "2026-05-07" 등 처리
+    const fixed = str.replace(/(\d+)\s([A-Za-z]+),?\s(\d{4})/, '$2 $1, $3');
+    const d = new Date(fixed);
+    return isNaN(d) ? Infinity : d.getTime();
+  }
+
   const dates = Object.keys(counts).sort((a,b) => {
-    if (a===NO_DATE) return 1;
-    if (b===NO_DATE) return -1;
-    return a.localeCompare(b);
+    const ta = parseSortDate(a), tb = parseSortDate(b);
+    if (ta === Infinity && tb === Infinity) return a.localeCompare(b);
+    return ta - tb;
   });
 
   let html = `<div class="day-tab active" data-day="all" onclick="switchUpcomingDay('all')">전체 (${upcoming.length})</div>`;
