@@ -222,6 +222,25 @@ def _parse_date(date_str: str):
     return None
 
 
+def _fetch_steamspy_game_details(appid: int) -> dict:
+    """SteamSpy 개별 게임 API → developer/publisher/genre 조회.
+    Steam appdetails 실패 시 폴백으로 사용.
+    """
+    try:
+        url = f"https://steamspy.com/api.php?request=appdetails&appid={appid}"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        if r.status_code == 200:
+            d = r.json()
+            return {
+                "developer": d.get("developer") or None,
+                "publisher": d.get("publisher") or None,
+                "genres":    d.get("genre") or None,
+            }
+    except Exception:
+        pass
+    return {}
+
+
 def fetch_gamalytic_followers(appid: int) -> int:
     """Gamalytic API로 Steam 팔로워 수 조회 (무료, 인증 불필요).
     정상 조회 시 팔로워 수(>=0), 조회 실패 시 -1 반환.
@@ -265,50 +284,66 @@ def _enrich_upcoming_item(appid: int, name_fallback: str, header_image_fallback:
         f"https://store.steampowered.com/api/appdetails/"
         f"?appids={appid}&cc=kr"
     )
-    try:
-        dr  = requests.get(detail_url, headers=HEADERS, timeout=15)
-        app = dr.json().get(str(appid), {})
-        if not (app.get("success") and app.get("data")):
-            print(f"    ⚠ AppID {appid} success=false, 기본값 사용")
-            return base
-        d = app["data"]
+    # Steam appdetails: 최대 3회 재시도
+    app_data = None
+    for attempt in range(3):
+        try:
+            dr  = requests.get(detail_url, headers=HEADERS, timeout=15)
+            resp = dr.json().get(str(appid), {})
+            if resp.get("success") and resp.get("data"):
+                app_data = resp["data"]
+                break
+            else:
+                print(f"    ⚠ AppID {appid} success=false (시도 {attempt+1}/3)")
+                time.sleep(2 ** attempt)  # 1s, 2s, 4s 지수 백오프
+        except Exception as e:
+            print(f"    ⚠ AppID {appid} 오류 (시도 {attempt+1}/3): {e}")
+            time.sleep(2 ** attempt)
 
-        # 개발사 / 배급사
-        developer = ", ".join(d.get("developers", [])) or None
-        publisher = ", ".join(d.get("publishers", [])) or None
-
-        # 장르
-        genres = ", ".join(g["description"] for g in d.get("genres", [])) or None
-
-        # 출시일 / coming_soon
-        rd = d.get("release_date", {}) or {}
-        release_date_str  = rd.get("date", "") or ""
-        coming_soon_flag  = bool(rd.get("coming_soon", True))
-
-        # 가격 (₩)
-        p = d.get("price_overview") or {}
-        is_free   = d.get("is_free", False)
-        price_krw = 0 if is_free else (int(p.get("final", 0)) // 100 if p else None)
-        disc_pct  = int(p.get("discount_percent", 0)) if p else 0
-
-        # 헤더 이미지: API > featuredcategories > CDN 순
-        header_image = d.get("header_image") or header_image_fallback or cdn_img
-
-        base.update({
-            "name":         d.get("name") or name_fallback,
-            "developer":    developer,
-            "publisher":    publisher,
-            "genres":       genres,
-            "release_date": release_date_str,
-            "coming_soon":  coming_soon_flag,
-            "price_krw":    price_krw,
-            "discount_pct": disc_pct,
-            "header_image": header_image,
-        })
+    if app_data is None:
+        # Steam API 완전 실패 → SteamSpy 폴백으로 developer/publisher/genre 보완
+        print(f"    ⚠ AppID {appid} Steam API 실패, SteamSpy 폴백 시도")
+        sp = _fetch_steamspy_game_details(appid)
+        if sp:
+            base.update({k: v for k, v in sp.items() if v is not None})
+            print(f"      SteamSpy 폴백 성공: dev={sp.get('developer')}, genre={sp.get('genres')}")
         return base
-    except Exception as e:
-        print(f"    ⚠ AppID {appid} 조회 실패: {e}, 기본값 사용")
-        return base
+
+    d = app_data
+
+    # 개발사 / 배급사
+    developer = ", ".join(d.get("developers", [])) or None
+    publisher = ", ".join(d.get("publishers", [])) or None
+
+    # 장르
+    genres = ", ".join(g["description"] for g in d.get("genres", [])) or None
+
+    # 출시일 / coming_soon
+    rd = d.get("release_date", {}) or {}
+    release_date_str = rd.get("date", "") or ""
+    coming_soon_flag = bool(rd.get("coming_soon", True))
+
+    # 가격 (₩)
+    p = d.get("price_overview") or {}
+    is_free   = d.get("is_free", False)
+    price_krw = 0 if is_free else (int(p.get("final", 0)) // 100 if p else None)
+    disc_pct  = int(p.get("discount_percent", 0)) if p else 0
+
+    # 헤더 이미지: API > featuredcategories > CDN 순
+    header_image = d.get("header_image") or header_image_fallback or cdn_img
+
+    base.update({
+        "name":         d.get("name") or name_fallback,
+        "developer":    developer,
+        "publisher":    publisher,
+        "genres":       genres,
+        "release_date": release_date_str,
+        "coming_soon":  coming_soon_flag,
+        "price_krw":    price_krw,
+        "discount_pct": disc_pct,
+        "header_image": header_image,
+    })
+    return base
 
 
 def fetch_upcoming_games() -> list:
