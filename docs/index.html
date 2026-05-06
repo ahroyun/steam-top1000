@@ -1084,10 +1084,10 @@ fetch('data.json?_='+Date.now())
     const hlArr = [...indyCandidates].filter(isPublishHL).slice(0, 25);
     window._highlightIndySet = new Set(hlArr.map(g => g.appid));
 
-    const indyRising  = indyCandidates.filter(g => (g.ccu_change||0) > 0);
-    const topRiser    = [...indyRising].sort((a,b)=>(b.ccu_change_pct||0)-(a.ccu_change_pct||0))[0];
-    const indyNew     = indyCandidates.filter(g => g.ccu_change==null);
-    const bestRankIndy = indyCandidates.reduce((b,g) => (!b||g.rank<b.rank)?g:b, null);
+    const indyRising    = indyCandidates.filter(g => (g.ccu_change||0) > 0);
+    const indyTopRiser  = [...indyRising].sort((a,b)=>(b.ccu_change_pct||0)-(a.ccu_change_pct||0))[0];
+    const indyNew       = indyCandidates.filter(g => g.ccu_change==null);
+    const bestRankIndy  = indyCandidates.reduce((b,g) => (!b||g.rank<b.rank)?g:b, null);
 
     document.getElementById('stats-indy').innerHTML = `
       <div class="stat-card" style="border-color:rgba(168,85,247,.4)">
@@ -1102,8 +1102,8 @@ fetch('data.json?_='+Date.now())
       </div>
       <div class="stat-card">
         <div class="stat-label">📈 급상승 인디</div>
-        <div class="stat-value" style="font-size:13px;color:var(--up);line-height:1.3">${topRiser?.name||'해당 없음'}</div>
-        <div class="stat-sub">${topRiser ? '+'+topRiser.ccu_change_pct+'% 상승' : ''}</div>
+        <div class="stat-value" style="font-size:13px;color:var(--up);line-height:1.3">${indyTopRiser?.name||'해당 없음'}</div>
+        <div class="stat-sub">${indyTopRiser ? '+'+indyTopRiser.ccu_change_pct+'% 상승' : ''}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">🆕 신규 진입 인디</div>
