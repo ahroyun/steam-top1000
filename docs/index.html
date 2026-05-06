@@ -770,16 +770,24 @@ function renderUpcoming(upcoming) {
       const badgeCls = isSoon ? 'badge-soon' : 'badge-out';
       const badgeText = isSoon ? '출시 예정' : '출시됨';
       const imgSrc = `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
+      const relLabel = isSoon
+        ? (g.release_date ? g.release_date : '미정')
+        : (g.release_date ? g.release_date : '-');
       html += `
         <div class="upcoming-card">
           <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
-            <img src="${imgSrc}" alt="${g.name}" loading="lazy" onerror="this.style.display='none'">
+            <img src="${imgSrc}" alt="${g.name}" loading="lazy"
+                 onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/capsule_231x87.jpg';this.onerror=null;">
           </a>
           <div class="upcoming-info">
             <div class="upcoming-name">
               <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a>
             </div>
             <div class="upcoming-meta">
+              <div class="upcoming-row">
+                <span class="upcoming-key">📅 ${isSoon ? '출시 예정일' : '출시일'}</span>
+                <span class="upcoming-val" style="color:#fff;font-weight:600">${relLabel}</span>
+              </div>
               <div class="upcoming-row">
                 <span class="upcoming-key">개발사</span>
                 <span class="upcoming-val">${g.developer||'-'}</span>
