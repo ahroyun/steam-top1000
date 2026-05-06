@@ -28,14 +28,22 @@
   header h1 span { color: var(--accent); }
   .updated { color: var(--muted); font-size: 12px; }
 
-  .tabs { display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; gap: 3px; padding: 16px 32px 0; border-bottom: 1px solid var(--border); }
   .tab {
-    padding: 9px 20px; border-radius: 6px 6px 0 0; cursor: pointer;
+    padding: 9px 18px; border-radius: 6px 6px 0 0; cursor: pointer;
     color: var(--muted); border: 1px solid transparent; border-bottom: none;
-    transition: all .2s; font-size: 13px; font-weight: 500;
+    transition: all .2s; font-size: 13px; font-weight: 500; white-space: nowrap;
   }
   .tab:hover { color: var(--text); background: rgba(255,255,255,.04); }
-  .tab.active { color: var(--accent); background: var(--card); border-color: var(--border); border-bottom: 1px solid var(--card); margin-bottom: -1px; }
+
+  /* 오늘의 차트 · 신작 캘린더: 파란 액센트 */
+  .tab.tab-chart.active { color: var(--accent); background: var(--card); border-color: var(--border); border-bottom: 1px solid var(--card); margin-bottom: -1px; }
+  .tab.tab-chart:hover  { color: var(--accent); }
+
+  /* 롱런 탭: 골드 액센트 + 배경 살짝 다름 */
+  .tab.tab-lr { background: rgba(245,197,24,.04); }
+  .tab.tab-lr.active { color: var(--gold); background: var(--card); border-color: rgba(245,197,24,.35); border-bottom: 1px solid var(--card); margin-bottom: -1px; }
+  .tab.tab-lr:hover  { color: var(--gold); background: rgba(245,197,24,.08); }
 
   .content { padding: 20px 32px; }
   .panel { display: none; }
@@ -197,11 +205,11 @@
 </header>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('today')">오늘의 차트</div>
-  <div class="tab" onclick="switchTab('w1')">1주+ 롱런</div>
-  <div class="tab" onclick="switchTab('w2')">2주+ 롱런</div>
-  <div class="tab" onclick="switchTab('w4')">4주+ 롱런 🏆</div>
-  <div class="tab" onclick="switchTab('upcoming')">🗓 신작 캘린더</div>
+  <div class="tab tab-chart active" onclick="switchTab('today')">🎮 오늘의 차트</div>
+  <div class="tab tab-lr" onclick="switchTab('w1')">📊 7일+</div>
+  <div class="tab tab-lr" onclick="switchTab('w2')">📊 14일+</div>
+  <div class="tab tab-lr" onclick="switchTab('w1m')">🏆 30일+</div>
+  <div class="tab tab-chart" onclick="switchTab('upcoming')">🗓 신작 캘린더</div>
 </div>
 
 <div class="content">
@@ -292,7 +300,7 @@
     <div class="pagination" id="pg-w1"></div>
   </div>
 
-  <!-- ── 2주+ 롱런 ── -->
+  <!-- ── 14일+ 롱런 ── -->
   <div class="panel" id="panel-w2">
     <div class="filter-bar">
       <div class="filter-group">
@@ -336,48 +344,48 @@
     <div class="pagination" id="pg-w2"></div>
   </div>
 
-  <!-- ── 4주+ 롱런 ── -->
-  <div class="panel" id="panel-w4">
+  <!-- ── 30일+ 장기 흥행 ── -->
+  <div class="panel" id="panel-w1m">
     <div class="filter-bar">
       <div class="filter-group">
-        <input class="f-input wide" id="search-w4" placeholder="🔍 게임명 / 개발사 검색" oninput="applyFilters('w4')" />
+        <input class="f-input wide" id="search-w1m" placeholder="🔍 게임명 / 개발사 검색" oninput="applyFilters('w1m')" />
       </div>
       <div class="filter-group">
         <span class="filter-label">장르</span>
-        <select class="f-select" id="genre-w4" onchange="applyFilters('w4')"><option value="">전체</option></select>
+        <select class="f-select" id="genre-w1m" onchange="applyFilters('w1m')"><option value="">전체</option></select>
       </div>
       <div class="filter-group">
         <span class="filter-label">동접</span>
-        <input class="f-input narrow" id="ccu-min-w4" type="number" placeholder="최소" oninput="applyFilters('w4')" />
+        <input class="f-input narrow" id="ccu-min-w1m" type="number" placeholder="최소" oninput="applyFilters('w1m')" />
         <span class="filter-label">~</span>
-        <input class="f-input narrow" id="ccu-max-w4" type="number" placeholder="최대" oninput="applyFilters('w4')" />
+        <input class="f-input narrow" id="ccu-max-w1m" type="number" placeholder="최대" oninput="applyFilters('w1m')" />
       </div>
-      <button class="filter-reset" onclick="resetFilters('w4')">초기화</button>
-      <span class="count-label" id="count-w4"></span>
+      <button class="filter-reset" onclick="resetFilters('w1m')">초기화</button>
+      <span class="count-label" id="count-w1m"></span>
     </div>
     <div class="table-wrap">
-      <table id="table-w4">
+      <table id="table-w1m">
         <thead><tr>
-          <th onclick="sortTable('w4',0)">게임명</th>
-          <th onclick="sortTable('w4',1)">유지일수</th>
-          <th onclick="sortTable('w4',2)">평균순위</th>
-          <th onclick="sortTable('w4',3)">최고순위</th>
-          <th onclick="sortTable('w4',4)">개발사</th>
-          <th onclick="sortTable('w4',5)">퍼블리셔</th>
-          <th onclick="sortTable('w4',6)">장르</th>
-          <th onclick="sortTable('w4',7)">출시일</th>
-          <th onclick="sortTable('w4',8)">판매량(추정)</th>
-          <th onclick="sortTable('w4',9)">평균동접</th>
-          <th onclick="sortTable('w4',10)">최근동접</th>
-          <th onclick="sortTable('w4',11)">리뷰수(긍정%)</th>
-          <th onclick="sortTable('w4',12)">가격</th>
-          <th onclick="sortTable('w4',13)">첫관측일</th>
+          <th onclick="sortTable('w1m',0)">게임명</th>
+          <th onclick="sortTable('w1m',1)">유지일수</th>
+          <th onclick="sortTable('w1m',2)">평균순위</th>
+          <th onclick="sortTable('w1m',3)">최고순위</th>
+          <th onclick="sortTable('w1m',4)">개발사</th>
+          <th onclick="sortTable('w1m',5)">퍼블리셔</th>
+          <th onclick="sortTable('w1m',6)">장르</th>
+          <th onclick="sortTable('w1m',7)">출시일</th>
+          <th onclick="sortTable('w1m',8)">판매량(추정)</th>
+          <th onclick="sortTable('w1m',9)">평균동접</th>
+          <th onclick="sortTable('w1m',10)">최근동접</th>
+          <th onclick="sortTable('w1m',11)">리뷰수(긍정%)</th>
+          <th onclick="sortTable('w1m',12)">가격</th>
+          <th onclick="sortTable('w1m',13)">첫관측일</th>
         </tr></thead>
-        <tbody id="tbody-w4"></tbody>
+        <tbody id="tbody-w1m"></tbody>
       </table>
     </div>
-    <div class="empty" id="empty-w4" style="display:none"><div style="font-size:36px">🏆</div><p>28일 데이터가 쌓이면 표시됩니다.</p></div>
-    <div class="pagination" id="pg-w4"></div>
+    <div class="empty" id="empty-w1m" style="display:none"><div style="font-size:36px">🏆</div><p>30일 데이터가 쌓이면 표시됩니다.</p></div>
+    <div class="pagination" id="pg-w1m"></div>
   </div>
 
   <!-- ── 신작 캘린더 ── -->
@@ -393,16 +401,17 @@
 
 <script>
 const PAGE_SIZE = 50;
-const pages     = { today:1, w1:1, w2:1, w4:1 };
-const filtered  = { today:[], w1:[], w2:[], w4:[] };
+const pages     = { today:1, w1:1, w2:1, w1m:1 };
+const filtered  = { today:[], w1:[], w2:[], w1m:[] };
 const sortState = {
   today:{col:-1,asc:true}, w1:{col:-1,asc:true},
-  w2:{col:-1,asc:true},    w4:{col:-1,asc:true}
+  w2:{col:-1,asc:true},    w1m:{col:-1,asc:true}
 };
 
+// ── 포맷 헬퍼 ─────────────────────────────────────────────────────────────────
 const fmt   = n => (n==null||n==='') ? '-' : Number(n).toLocaleString('ko-KR');
 const fmtW  = n => n==null ? '<span class="price-free">무료</span>' : `₩${Number(n).toLocaleString('ko-KR')}`;
-const fmtM  = n => { // 판매량 축약
+const fmtM  = n => {
   if (n==null) return '-';
   if (n>=1e8) return (n/1e8).toFixed(1)+'억';
   if (n>=1e4) return Math.round(n/1e4)+'만';
@@ -430,8 +439,11 @@ function ccuChangeFmt(chg, pct) {
 
 // ── 탭 전환 ───────────────────────────────────────────────────────────────────
 function switchTab(id) {
-  const ids = ['today','w1','w2','w4','upcoming'];
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
+  // .tab 요소만 선택 (.tab-divider, .tab-group-label 제외)
+  document.querySelectorAll('.tab[onclick]').forEach(t => {
+    const tid = t.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+    t.classList.toggle('active', tid===id);
+  });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`panel-${id}`).classList.add('active');
 }
@@ -458,9 +470,11 @@ function applyFilters(key) {
   const ccuMax = ccuMaxV ? parseInt(ccuMaxV) : Infinity;
   const isToday= key==='today';
 
+  // data key mapping: w1 → longrun_w1, w1m → longrun_w1m
+  const dataKey = isToday ? null : `longrun_${key}`;
   const src = isToday
     ? (window._data?.today_chart||[])
-    : (window._data?.[`longrun_${key}`]||[]);
+    : (window._data?.[dataKey]||[]);
 
   filtered[key] = src.filter(g => {
     const nameMatch  = !q ||
@@ -517,7 +531,8 @@ function renderPage(key) {
       </tr>`;
     }).join('');
   } else {
-    const badgeCls = key==='w4' ? 'days-4w' : key==='w2' ? 'days-2w' : 'days-1w';
+    // 7일=민트, 14일=파란, 30일=골드
+    const badgeCls = key==='w1m' ? 'days-4w' : key==='w2' ? 'days-2w' : 'days-1w';
     tbody.innerHTML = slice.map(g => {
       return `<tr>
         <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
@@ -539,7 +554,8 @@ function renderPage(key) {
 
     const tableEl = document.getElementById(`table-${key}`);
     const emptyEl = document.getElementById(`empty-${key}`);
-    const srcLen  = (window._data?.[`longrun_${key}`]||[]).length;
+    const dataKey = `longrun_${key}`;
+    const srcLen  = (window._data?.[dataKey]||[]).length;
     if (srcLen===0) { tableEl.style.display='none'; emptyEl.style.display='block'; }
     else            { tableEl.style.display='';      emptyEl.style.display='none'; }
   }
@@ -605,7 +621,77 @@ function sortTable(key, col) {
   });
 }
 
-// ── 신작 캘린더 렌더 ──────────────────────────────────────────────────────────
+// ── 퍼블리싱 후보 필터 (카드 클릭) ──────────────────────────────────────────
+function filterIndieCandidates() {
+  const candidates = window._indyCandidates || [];
+  if (!candidates.length) return;
+
+  // 모달로 띄우기
+  const existing = document.getElementById('indy-modal');
+  if (existing) { existing.remove(); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'indy-modal';
+  modal.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  `;
+  modal.onclick = e => { if(e.target===modal) modal.remove(); };
+
+  const box = document.createElement('div');
+  box.style.cssText = `
+    background:var(--card); border:1px solid var(--purple); border-radius:12px;
+    width:100%; max-width:860px; max-height:80vh; display:flex; flex-direction:column;
+    overflow:hidden;
+  `;
+
+  box.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#fff">🎯 퍼블리싱 후보 — 중소 개발사</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">200위 내 · 대형 퍼블리셔 제외 · 동접 순 정렬</div>
+      </div>
+      <button onclick="document.getElementById('indy-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#0e1923;position:sticky;top:0">
+          <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">순위</th>
+          <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;font-weight:600">게임명</th>
+          <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;font-weight:600">개발사</th>
+          <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;font-weight:600">퍼블리셔</th>
+          <th style="padding:10px 12px;text-align:right;color:var(--muted);font-size:11px;font-weight:600">동접</th>
+          <th style="padding:10px 12px;text-align:right;color:var(--muted);font-size:11px;font-weight:600">판매량(추정)</th>
+          <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;font-weight:600">리뷰</th>
+          <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;font-weight:600">출시일</th>
+        </tr></thead>
+        <tbody>
+          ${candidates.map(g=>`
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+              <td style="padding:9px 12px;color:var(--muted);font-weight:700">${g.rank}</td>
+              <td style="padding:9px 12px;font-weight:500">
+                <a href="https://store.steampowered.com/app/${g.appid}" target="_blank"
+                   style="color:#fff;text-decoration:none" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#fff'">
+                  ${g.name}
+                </a>
+              </td>
+              <td style="padding:9px 12px;color:var(--muted);font-size:12px">${g.developer||'-'}</td>
+              <td style="padding:9px 12px;color:var(--muted);font-size:12px">${g.publisher||'-'}</td>
+              <td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums">${fmt(g.ccu)}</td>
+              <td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)">${fmtM(g.owners_estimate)}</td>
+              <td style="padding:9px 12px">${reviewFmt(g.total_reviews, g.review_score_pct)}</td>
+              <td style="padding:9px 12px;color:var(--muted);font-size:12px;white-space:nowrap">${g.release_date||'-'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+}
+
+// ── 신작 캘린더 렌더 (출시일별 그룹) ─────────────────────────────────────────
 function renderUpcoming(upcoming) {
   const grid = document.getElementById('upcoming-grid');
   if (!upcoming||upcoming.length===0) {
@@ -614,56 +700,96 @@ function renderUpcoming(upcoming) {
     return;
   }
 
+  // 출시일별 그룹핑 (미정은 맨 뒤)
+  const grouped = {};
+  const NO_DATE = '출시일 미정';
+  upcoming.forEach(g => {
+    const key = g.release_date || NO_DATE;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(g);
+  });
+
+  // 날짜 정렬: 출시 예정(coming_soon=true) 먼저, 출시됨 다음, 미정 마지막
+  const sortedDates = Object.keys(grouped).sort((a,b) => {
+    if (a===NO_DATE) return 1;
+    if (b===NO_DATE) return -1;
+    return a.localeCompare(b);
+  });
+
+  // 통계 카드
+  const soon   = upcoming.filter(g=>g.coming_soon).length;
+  const out    = upcoming.filter(g=>!g.coming_soon).length;
+  const priced = upcoming.filter(g=>g.price_krw!=null&&g.price_krw>0);
+  const avgPrice= priced.length ? Math.round(priced.reduce((s,g)=>s+g.price_krw,0)/priced.length) : null;
   document.getElementById('stats-upcoming').innerHTML = `
-    <div class="stat-card"><div class="stat-label">🗓 주목 신작</div><div class="stat-value">${upcoming.length}</div><div class="stat-sub">Steam 선정 출시 예정</div></div>
-    <div class="stat-card"><div class="stat-label">💰 평균 예상 가격</div><div class="stat-value" style="font-size:15px">${(()=>{
-      const priced = upcoming.filter(g=>g.price_krw!=null);
-      if (!priced.length) return '미정';
-      const avg = Math.round(priced.reduce((s,g)=>s+g.price_krw,0)/priced.length);
-      return '₩'+avg.toLocaleString('ko-KR');
-    })()}</div><div class="stat-sub">유료 타이틀 기준</div></div>
+    <div class="stat-card"><div class="stat-label">🗓 출시 예정</div><div class="stat-value">${soon}</div><div class="stat-sub">Coming Soon</div></div>
+    <div class="stat-card"><div class="stat-label">✅ 최근 출시</div><div class="stat-value">${out}</div><div class="stat-sub">New Releases</div></div>
+    <div class="stat-card"><div class="stat-label">📅 출시일 그룹</div><div class="stat-value">${sortedDates.filter(d=>d!==NO_DATE).length}</div><div class="stat-sub">날짜 기준</div></div>
+    <div class="stat-card"><div class="stat-label">💰 평균 예상 가격</div><div class="stat-value" style="font-size:15px">${avgPrice ? '₩'+avgPrice.toLocaleString('ko-KR') : '미정'}</div><div class="stat-sub">유료 타이틀 기준</div></div>
   `;
 
-  grid.innerHTML = upcoming.map(g => {
-    const isSoon = g.coming_soon;
-    const badgeCls = isSoon ? 'badge-soon' : 'badge-out';
-    const badgeText = isSoon ? '출시 예정' : '출시됨';
-    const imgSrc = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
-    return `
-      <div class="upcoming-card">
-        <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
-          <img src="${imgSrc}" alt="${g.name}" loading="lazy" onerror="this.style.display='none'">
-        </a>
-        <div class="upcoming-info">
-          <div class="upcoming-name">
-            <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a>
+  // 날짜 헤더 + 카드 그룹 렌더
+  let html = '';
+  sortedDates.forEach(dateKey => {
+    const gamesInGroup = grouped[dateKey];
+    const isNoDate = dateKey===NO_DATE;
+
+    // 날짜 구분 헤더
+    html += `<div style="
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 12px;
+      margin-top: 8px; margin-bottom: 4px;
+    ">
+      <span style="
+        background: ${isNoDate ? 'var(--card)' : 'var(--purple-bg)'};
+        color: ${isNoDate ? 'var(--muted)' : 'var(--purple)'};
+        border: 1px solid ${isNoDate ? 'var(--border)' : 'var(--purple)'};
+        border-radius: 6px; padding: 4px 14px; font-size: 13px; font-weight: 700;
+        white-space: nowrap;
+      ">${isNoDate ? '📅 '+dateKey : '📅 '+dateKey}</span>
+      <span style="color:var(--muted);font-size:12px">${gamesInGroup.length}개 타이틀</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>`;
+
+    gamesInGroup.forEach(g => {
+      const isSoon = g.coming_soon;
+      const badgeCls = isSoon ? 'badge-soon' : 'badge-out';
+      const badgeText = isSoon ? '출시 예정' : '출시됨';
+      const imgSrc = `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
+      html += `
+        <div class="upcoming-card">
+          <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
+            <img src="${imgSrc}" alt="${g.name}" loading="lazy" onerror="this.style.display='none'">
+          </a>
+          <div class="upcoming-info">
+            <div class="upcoming-name">
+              <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a>
+            </div>
+            <div class="upcoming-meta">
+              <div class="upcoming-row">
+                <span class="upcoming-key">개발사</span>
+                <span class="upcoming-val">${g.developer||'-'}</span>
+              </div>
+              <div class="upcoming-row">
+                <span class="upcoming-key">퍼블리셔</span>
+                <span class="upcoming-val">${g.publisher||'-'}</span>
+              </div>
+              <div class="upcoming-row">
+                <span class="upcoming-key">장르</span>
+                <span class="upcoming-val">${g.genres||'-'}</span>
+              </div>
+              <div class="upcoming-row">
+                <span class="upcoming-key">가격</span>
+                <span class="upcoming-val">${g.price_krw==null ? '미정' : g.price_krw===0 ? '무료' : '₩'+g.price_krw.toLocaleString('ko-KR')}</span>
+              </div>
+            </div>
+            <span class="release-badge ${badgeCls}">${badgeText}</span>
           </div>
-          <div class="upcoming-meta">
-            <div class="upcoming-row">
-              <span class="upcoming-key">개발사</span>
-              <span class="upcoming-val">${g.developer||'-'}</span>
-            </div>
-            <div class="upcoming-row">
-              <span class="upcoming-key">퍼블리셔</span>
-              <span class="upcoming-val">${g.publisher||'-'}</span>
-            </div>
-            <div class="upcoming-row">
-              <span class="upcoming-key">장르</span>
-              <span class="upcoming-val">${g.genres||'-'}</span>
-            </div>
-            <div class="upcoming-row">
-              <span class="upcoming-key">출시일</span>
-              <span class="upcoming-val" style="color:#fff;font-weight:600">${g.release_date||'미정'}</span>
-            </div>
-            <div class="upcoming-row">
-              <span class="upcoming-key">가격</span>
-              <span class="upcoming-val">${g.price_krw==null ? '미정' : g.price_krw===0 ? '무료' : '₩'+g.price_krw.toLocaleString('ko-KR')}</span>
-            </div>
-          </div>
-          <span class="release-badge ${badgeCls}">${badgeText}</span>
-        </div>
-      </div>`;
-  }).join('');
+        </div>`;
+    });
+  });
+
+  grid.innerHTML = html;
 }
 
 // ── 데이터 로드 ───────────────────────────────────────────────────────────────
@@ -671,40 +797,84 @@ fetch('data.json?_='+Date.now())
   .then(r => r.json())
   .then(data => {
     window._data = {
-      today_chart: data.today_chart||[],
-      longrun_w1:  data.longrun_1w ||[],
-      longrun_w2:  data.longrun_2w ||[],
-      longrun_w4:  data.longrun_4w ||[],
+      today_chart:  data.today_chart  ||[],
+      longrun_w1:   data.longrun_1w   ||[],
+      longrun_w2:   data.longrun_2w   ||[],
+      longrun_w1m:  data.longrun_1m   ||[],
     };
 
     document.getElementById('updated-label').textContent = `마지막 업데이트: ${data.updated}`;
 
-    // 오늘의 차트 통계
+    // ── 오늘의 차트 통계 카드 ──────────────────────────────────────────────────
     const rows = data.today_chart||[];
     const top  = rows[0];
-    const onSale  = rows.filter(g=>g.discount_pct>0).length;
-    const avgScore= rows.length ? (rows.reduce((s,g)=>s+(g.review_score_pct||0),0)/rows.length).toFixed(1) : 0;
-    const rising  = rows.filter(g=>(g.ccu_change||0)>0).length;
-    const totalOwners = rows.reduce((s,g)=>s+(g.owners_estimate||0),0);
+
+    // 최다 상승 게임 (ccu_change 기준)
+    const risingGames = rows.filter(g=>(g.ccu_change||0)>0);
+    const topRiser = [...risingGames].sort((a,b)=>(b.ccu_change||0)-(a.ccu_change||0))[0];
+
+    // 신규 진입 (ccu_change가 null → 전일 기록 없음 = 신규)
+    const newEntries = rows.filter(g=>g.ccu_change==null).length;
+
+    // 중소 개발사 필터 (대형사 블랙리스트)
+    const BIG_PUB = ['valve','electronic arts','ubisoft','activision','blizzard',
+      '2k','take-two','bethesda','square enix','bandai namco','capcom','sega',
+      'nexon','netmarble','ncsoft','krafton','smilegate','devsisters',
+      'riot games','epic games','microsoft','sony','nintendo','cd projekt',
+      'focus entertainment','thq nordic','paradox','warhammer'];
+    const isBig = g => {
+      const pub = (g.publisher||g.developer||'').toLowerCase();
+      return BIG_PUB.some(b => pub.includes(b));
+    };
+    const indyCandidates = rows
+      .filter(g => !isBig(g))
+      .sort((a,b) => (b.ccu||0)-(a.ccu||0));
+    // 인디 최고 순위: rank 가장 낮은 번호(=가장 높은 순위)
+    const topIndyRank = [...indyCandidates].sort((a,b)=>(a.rank||999)-(b.rank||999))[0];
+    // 중소 개발사 Top 동접
+    const topIndyCCU = indyCandidates[0];
+
     document.getElementById('stats-today').innerHTML = `
-      <div class="stat-card"><div class="stat-label">🏅 1위 게임</div><div class="stat-value" style="font-size:14px">${top?.name||'-'}</div><div class="stat-sub">동접 ${fmt(top?.ccu)}</div></div>
-      <div class="stat-card"><div class="stat-label">👥 추적 게임</div><div class="stat-value">${rows.length}</div><div class="stat-sub">상위 1000위 기준</div></div>
-      <div class="stat-card"><div class="stat-label">📈 동접 상승</div><div class="stat-value" style="color:var(--up)">${rising}</div><div class="stat-sub">전일 대비</div></div>
-      <div class="stat-card"><div class="stat-label">🏷️ 할인 중</div><div class="stat-value">${onSale}</div><div class="stat-sub">오늘 기준</div></div>
-      <div class="stat-card"><div class="stat-label">⭐ 평균 긍정리뷰</div><div class="stat-value">${avgScore}%</div><div class="stat-sub">전체 평균</div></div>
+      <div class="stat-card">
+        <div class="stat-label">🏅 1위 게임</div>
+        <div class="stat-value" style="font-size:14px">${top?.name||'-'}</div>
+        <div class="stat-sub">동접 ${fmt(top?.ccu)}</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--gold)">
+        <div class="stat-label" style="color:var(--gold)">🏆 인디 최고 순위</div>
+        <div class="stat-value" style="font-size:14px;color:var(--gold)">${topIndyRank ? topIndyRank.rank+'위 · '+topIndyRank.name : '-'}</div>
+        <div class="stat-sub">중소 개발사 중 최고 순위</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📈 최다 상승 게임</div>
+        <div class="stat-value" style="font-size:13px;color:var(--up)">${topRiser?.name||'-'}</div>
+        <div class="stat-sub">+${fmt(topRiser?.ccu_change||0)} (${topRiser?.ccu_change_pct||0}%)</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--purple);cursor:pointer" onclick="filterIndieCandidates()" title="클릭하면 전체 목록 보기">
+        <div class="stat-label" style="color:var(--purple)">🎯 중소 개발사 Top 동접</div>
+        <div class="stat-value" style="color:var(--purple)">${fmt(topIndyCCU?.ccu)}</div>
+        <div class="stat-sub">${topIndyCCU?.name||'-'} · 클릭해서 전체 보기</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🆕 신규 진입</div>
+        <div class="stat-value">${newEntries}</div>
+        <div class="stat-sub">오늘 처음 관측된 게임</div>
+      </div>
     `;
+    // 중소 개발사 후보 목록 캐시
+    window._indyCandidates = indyCandidates;
 
     // 장르 옵션
     buildGenreOptions('today', rows);
-    buildGenreOptions('w1', data.longrun_1w||[]);
-    buildGenreOptions('w2', data.longrun_2w||[]);
-    buildGenreOptions('w4', data.longrun_4w||[]);
+    buildGenreOptions('w1',  data.longrun_1w||[]);
+    buildGenreOptions('w2',  data.longrun_2w||[]);
+    buildGenreOptions('w1m', data.longrun_1m||[]);
 
     // 신작 캘린더
     renderUpcoming(data.upcoming_games||[]);
 
     // 초기 렌더
-    ['today','w1','w2','w4'].forEach(k => applyFilters(k));
+    ['today','w1','w2','w1m'].forEach(k => applyFilters(k));
   })
   .catch(() => {
     document.getElementById('updated-label').textContent = '데이터 로드 실패';
