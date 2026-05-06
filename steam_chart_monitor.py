@@ -205,13 +205,14 @@ def fetch_reviews(appid: int) -> dict:
 
 # ── 출시 예정 게임 수집 ────────────────────────────────────────────────────────
 
-def _enrich_upcoming_item(appid: int, name_fallback: str) -> dict:
-    """단일 신작 게임의 상세정보 수집 (release_date, genres, price, dev/pub)
+def _enrich_upcoming_item(appid: int, name_fallback: str, header_image_fallback: str = "") -> dict:
+    """단일 신작 게임의 상세정보 수집.
 
-    API 호출 실패 시에도 appid/name 기본 정보는 반드시 반환.
-    HTML 스크래핑(fetch_dev_pub_from_store)은 사용하지 않음.
+    필터 없이 전체 appdetails 응답을 받아 developers/publishers/genres/
+    release_date/price_overview 를 모두 가져옴.
+    API 실패 시에도 featuredcategories에서 가져온 기본 정보는 반드시 반환.
     """
-    # 기본값: API가 실패해도 이것만큼은 저장
+    cdn_img = f"https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/header.jpg"
     base = {
         "appid":        appid,
         "name":         name_fallback,
@@ -222,37 +223,57 @@ def _enrich_upcoming_item(appid: int, name_fallback: str) -> dict:
         "coming_soon":  True,
         "price_krw":    None,
         "discount_pct": 0,
-        "header_image": f"https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/header.jpg",
+        "header_image": header_image_fallback or cdn_img,
     }
+    # 필터 없이 요청 → developers, publishers, genres, release_date, price_overview 모두 포함
     detail_url = (
         f"https://store.steampowered.com/api/appdetails/"
-        f"?appids={appid}&cc=kr&filters=release_date,genres,price_overview"
+        f"?appids={appid}&cc=kr"
     )
     try:
-        dr  = requests.get(detail_url, headers=HEADERS, timeout=12)
+        dr  = requests.get(detail_url, headers=HEADERS, timeout=15)
         app = dr.json().get(str(appid), {})
         if not (app.get("success") and app.get("data")):
-            print(f"    ⚠ AppID {appid} API success=false, 기본값 사용")
+            print(f"    ⚠ AppID {appid} success=false, 기본값 사용")
             return base
-        d  = app["data"]
-        p  = d.get("price_overview", {})
-        genres = ", ".join(g["description"] for g in d.get("genres", []))
-        rd     = d.get("release_date", {})
-        release_date_str = rd.get("date", "") if rd else ""
-        coming_soon_flag = bool(rd.get("coming_soon", True)) if rd else True
+        d = app["data"]
+
+        # 개발사 / 배급사
+        developer = ", ".join(d.get("developers", [])) or None
+        publisher = ", ".join(d.get("publishers", [])) or None
+
+        # 장르
+        genres = ", ".join(g["description"] for g in d.get("genres", [])) or None
+
+        # 출시일 / coming_soon
+        rd = d.get("release_date", {}) or {}
+        release_date_str  = rd.get("date", "") or ""
+        coming_soon_flag  = bool(rd.get("coming_soon", True))
+
+        # 가격 (₩)
+        p = d.get("price_overview") or {}
+        is_free   = d.get("is_free", False)
+        price_krw = 0 if is_free else (int(p.get("final", 0)) // 100 if p else None)
+        disc_pct  = int(p.get("discount_percent", 0)) if p else 0
+
+        # 헤더 이미지: API > featuredcategories > CDN 순
+        header_image = d.get("header_image") or header_image_fallback or cdn_img
 
         base.update({
             "name":         d.get("name") or name_fallback,
-            "genres":       genres or None,
+            "developer":    developer,
+            "publisher":    publisher,
+            "genres":       genres,
             "release_date": release_date_str,
             "coming_soon":  coming_soon_flag,
-            "price_krw":    int(p.get("final", 0)) // 100 if p else None,
-            "discount_pct": int(p.get("discount_percent", 0)) if p else 0,
+            "price_krw":    price_krw,
+            "discount_pct": disc_pct,
+            "header_image": header_image,
         })
         return base
     except Exception as e:
         print(f"    ⚠ AppID {appid} 조회 실패: {e}, 기본값 사용")
-        return base  # None 반환 대신 기본값 반환
+        return base
 
 
 def fetch_upcoming_games() -> list:
@@ -277,7 +298,11 @@ def fetch_upcoming_games() -> list:
                 aid = it.get("id")
                 if aid and aid not in seen:
                     seen.add(aid)
-                    items.append({"id": aid, "name": it.get("name", "")})
+                    items.append({
+                        "id":           aid,
+                        "name":         it.get("name", ""),
+                        "header_image": it.get("header_image", ""),
+                    })
     except Exception as e:
         print(f"  ⚠ featuredcategories 수집 실패: {e}")
         return []
@@ -285,7 +310,7 @@ def fetch_upcoming_games() -> list:
     print(f"  총 {len(items)}개 → 상세 수집 중...")
     games = []
     for it in items:
-        g = _enrich_upcoming_item(it["id"], it["name"])
+        g = _enrich_upcoming_item(it["id"], it["name"], it.get("header_image", ""))
         games.append(g)
         time.sleep(0.5)
     print(f"  상세 수집 완료: {len(games)}개 (API 실패분은 기본값 포함)")
