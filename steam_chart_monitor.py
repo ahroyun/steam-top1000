@@ -42,6 +42,15 @@ HEADERS = {
     )
 }
 
+# Steam 연령 제한 우회 쿠키 (18+ / 성인 콘텐츠 게임 appdetails 조회용)
+# birthtime=470700000 → 1984년생으로 처리 (42세)
+STEAM_COOKIES = {
+    "birthtime":            "470700000",
+    "lastagecheckage":      "1-0-1984",
+    "mature_content":       "1",
+    "wants_mature_content": "1",
+}
+
 
 # ── SteamSpy owners 파싱 ──────────────────────────────────────────────────────
 
@@ -119,8 +128,9 @@ def fetch_store_details(appid: int) -> dict:
         f"?appids={appid}&cc=kr&filters=release_date,genres,price_overview"
     )
     try:
-        r = requests.get(url, headers=HEADERS, timeout=12)
-        app = r.json().get(str(appid), {})
+        r   = requests.get(url, headers=HEADERS, cookies=STEAM_COOKIES, timeout=12)
+        raw = r.json().get(str(appid))
+        app = raw or {}
         if app.get("success") and app.get("data"):
             d = app["data"]
             p      = d.get("price_overview", {})
@@ -284,12 +294,14 @@ def _enrich_upcoming_item(appid: int, name_fallback: str, header_image_fallback:
         f"https://store.steampowered.com/api/appdetails/"
         f"?appids={appid}&cc=kr"
     )
-    # Steam appdetails: 최대 3회 재시도
+    # Steam appdetails: 최대 3회 재시도 + 연령 제한 우회 쿠키 포함
     app_data = None
     for attempt in range(3):
         try:
-            dr  = requests.get(detail_url, headers=HEADERS, timeout=15)
-            resp = dr.json().get(str(appid), {})
+            dr   = requests.get(detail_url, headers=HEADERS,
+                                cookies=STEAM_COOKIES, timeout=15)
+            raw  = dr.json().get(str(appid))
+            resp = raw or {}   # null 응답 → {} 로 처리 (NoneType 방지)
             if resp.get("success") and resp.get("data"):
                 app_data = resp["data"]
                 break
