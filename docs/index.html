@@ -111,6 +111,14 @@
   .row-discount:hover { background: rgba(79,160,72,.2) !important; }
   .row-up   { background: rgba(79,160,72,.07); }
   .row-down { background: rgba(201,64,64,.05); }
+  /* 오늘의 차트: 동접 상위 상승 30개 */
+  .row-hot  { background: rgba(245,197,24,.07); }
+  .row-hot:hover { background: rgba(245,197,24,.13) !important; }
+  .row-hot td:first-child { border-left: 2px solid var(--gold); }
+  /* 퍼블리싱 후보 하이라이트 */
+  .row-publish { background: rgba(168,85,247,.09); }
+  .row-publish:hover { background: rgba(168,85,247,.16) !important; }
+  .row-publish td:first-child { border-left: 2px solid var(--purple); }
 
   .rank { color: var(--muted); font-weight: 700; }
   .rank-top { color: var(--gold); }
@@ -201,6 +209,24 @@
   .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
   .empty p { margin-top: 8px; font-size: 13px; }
 
+  /* ── 각주 ── */
+  .fn-note {
+    margin-top: 12px; padding: 9px 14px;
+    background: rgba(255,255,255,.02); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 11px; color: var(--muted); line-height: 1.9;
+  }
+  .fn-note strong { color: var(--text); }
+  sup.fn { color: var(--muted); font-size: 9px; font-weight: 700; margin-left: 2px; }
+  thead th[title] { text-decoration: underline dotted rgba(143,152,160,.4); cursor: help; }
+  thead th[title]:hover { color: var(--accent); }
+
+  /* ── 기준 배너 ── */
+  .criteria-banner {
+    font-size: 12px; margin-bottom: 12px; padding: 12px 16px;
+    background: var(--card); border: 1px solid rgba(168,85,247,.25); border-radius: 8px;
+    line-height: 1.8;
+  }
+
   @media (max-width: 768px) {
     header, .tabs, .content { padding-left: 12px; padding-right: 12px; }
     .stats { flex-direction: column; }
@@ -256,9 +282,9 @@
           <th onclick="sortTable('today',3)">퍼블리셔</th>
           <th onclick="sortTable('today',4)">장르</th>
           <th onclick="sortTable('today',5)">출시일</th>
-          <th onclick="sortTable('today',6)">판매량(추정)</th>
-          <th onclick="sortTable('today',7)">동접자</th>
-          <th onclick="sortTable('today',8)">전일증감(%)</th>
+          <th onclick="sortTable('today',6)" title="SteamSpy owners 범위 중간값. 예: '200,000..500,000' → 350,000으로 환산. 실제 판매량과 다를 수 있음">판매량(추정)<sup class="fn">①</sup></th>
+          <th onclick="sortTable('today',7)" title="SteamSpy API 기준 추정치. Steam 공식 동시접속자 수가 아님">동접자<sup class="fn">②</sup></th>
+          <th onclick="sortTable('today',8)" title="전날 동일 수집 시점 스냅샷 기준. 수집 시간 차이에 따라 오차 있을 수 있음">전일증감(%)<sup class="fn">③</sup></th>
           <th onclick="sortTable('today',9)">리뷰수(긍정%)</th>
           <th onclick="sortTable('today',10)">가격</th>
           <th onclick="sortTable('today',11)">할인</th>
@@ -267,14 +293,45 @@
       </table>
     </div>
     <div class="pagination" id="pg-today"></div>
+    <div class="fn-note">
+      <strong>① 판매량(추정)</strong> SteamSpy가 제공하는 owners 범위(예: 200,000 ~ 500,000)의 중간값으로 환산한 추정치. 실제 판매량·게임 수 증정·번들 포함 여부에 따라 실제와 차이 있음 &nbsp;·&nbsp;
+      <strong>② 동접자</strong> Steam 공식 동시접속자 수가 아닌 SteamSpy API 추정치. 수집 주기·알고리즘 차이로 실제보다 높거나 낮을 수 있음 &nbsp;·&nbsp;
+      <strong>③ 전일증감</strong> 전날 동일 스크립트 실행 시점 스냅샷 기준. 수집 시간 차이(예: 한국시간 09:00 실행)에 따라 오차 있을 수 있음
+    </div>
   </div>
 
   <!-- ── 퍼블리싱 후보 ── -->
   <div class="panel" id="panel-indy">
     <div class="stats" id="stats-indy"></div>
-    <div style="color:var(--muted);font-size:12px;margin-bottom:12px;padding:10px 14px;background:var(--card);border:1px solid rgba(168,85,247,.25);border-radius:8px;">
-      🎯 <strong style="color:var(--purple)">대형 퍼블리셔 제외</strong> 기준 — 전체 차트 1000위 이내 중소 개발사 게임 목록입니다.
-      동접 증가율이 높거나 신규 진입한 게임이 퍼블리싱 발굴 후보입니다.
+    <div class="criteria-banner">
+      <div style="margin-bottom:6px">
+        <strong style="color:var(--purple)">🎯 선별 기준</strong>
+        <span style="color:var(--muted)"> — 아래 조건을 모두 충족하는 게임을 표시합니다</span>
+      </div>
+      <div style="color:var(--text)">
+        <span style="color:var(--purple)">①</span> SteamSpy 기준 동시접속자 순위 <strong>1,000위 이내</strong>
+        <span style="color:var(--muted);font-size:11px;margin-left:4px">— 매일 수집 시점 기준, SteamSpy 추정치 사용</span>
+      </div>
+      <div style="color:var(--text)">
+        <span style="color:var(--purple)">②</span> 퍼블리셔·개발사 명칭에 <strong>대형사 키워드 미포함</strong>
+        <span style="color:var(--muted);font-size:10px;margin-left:4px">
+          Valve / EA / Ubisoft / Activision / Blizzard / 2K / Bethesda / Square Enix / Bandai Namco /
+          Capcom / SEGA / Nexon / Netmarble / NCSoft / Krafton / Smilegate / Riot / Epic /
+          Microsoft / Sony / Nintendo / CD Projekt / Paradox / THQ Nordic 등
+        </span>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <strong style="color:var(--purple)">★ 하이라이트 기준</strong>
+        <span style="color:var(--muted);font-size:11px"> — 아래 조건 중 하나 이상 충족 시 보라 음영 + 뱃지 표시 (최대 25개)</span>
+        <div style="margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;font-size:11px">
+          <span><span style="color:var(--purple);font-weight:700">NEW</span> <span style="color:var(--muted)">전일 기록 없는 신규 진입</span></span>
+          <span><span style="color:var(--up);font-weight:700">↑%</span> <span style="color:var(--muted)">전일 대비 동접 15%+ 급상승</span></span>
+          <span><span style="color:var(--accent);font-weight:700">TOP</span> <span style="color:var(--muted)">전체 차트 200위 이내 (CCU 검증)</span></span>
+        </div>
+      </div>
+      <div style="color:var(--muted);font-size:11px;margin-top:6px">
+        ※ 퍼블리셔 미기재 게임은 개발사 명칭 기준 &nbsp;·&nbsp; 키워드 매칭 방식으로 실제 규모와 다를 수 있음
+      </div>
     </div>
     <div class="filter-bar">
       <div class="filter-group">
@@ -302,9 +359,9 @@
           <th onclick="sortTable('indy',3)">퍼블리셔</th>
           <th onclick="sortTable('indy',4)">장르</th>
           <th onclick="sortTable('indy',5)">출시일</th>
-          <th onclick="sortTable('indy',6)">판매량(추정)</th>
-          <th onclick="sortTable('indy',7)">동접자</th>
-          <th onclick="sortTable('indy',8)">전일증감(%)</th>
+          <th onclick="sortTable('indy',6)" title="SteamSpy owners 범위 중간값. 예: '200,000..500,000' → 350,000으로 환산. 실제 판매량과 다를 수 있음">판매량(추정)<sup class="fn">①</sup></th>
+          <th onclick="sortTable('indy',7)" title="SteamSpy API 기준 추정치. Steam 공식 동시접속자 수가 아님">동접자<sup class="fn">②</sup></th>
+          <th onclick="sortTable('indy',8)" title="전날 동일 수집 시점 스냅샷 기준. 수집 시간 차이에 따라 오차 있을 수 있음">전일증감(%)<sup class="fn">③</sup></th>
           <th onclick="sortTable('indy',9)">리뷰수(긍정%)</th>
           <th onclick="sortTable('indy',10)">가격</th>
           <th onclick="sortTable('indy',11)">할인</th>
@@ -313,6 +370,12 @@
       </table>
     </div>
     <div class="pagination" id="pg-indy"></div>
+    <div class="fn-note">
+      <strong>① 판매량(추정)</strong> SteamSpy owners 범위 중간값. 실제 판매량과 다를 수 있음 &nbsp;·&nbsp;
+      <strong>② 동접자</strong> SteamSpy API 추정치 (Steam 공식 수치 아님) &nbsp;·&nbsp;
+      <strong>③ 전일증감</strong> 전날 동일 수집 시점 기준 &nbsp;·&nbsp;
+      <strong>퍼블리싱 후보 기준</strong> 대형사 키워드 단순 매칭 방식 — 실제 기업 규모와 다를 수 있으며, 퍼블리셔 미기재 게임은 개발사 명칭 적용
+    </div>
   </div>
 
   <!-- ── 7일+ 롱런 ── -->
@@ -346,9 +409,9 @@
           <th onclick="sortTable('w1',5)">퍼블리셔</th>
           <th onclick="sortTable('w1',6)">장르</th>
           <th onclick="sortTable('w1',7)">출시일</th>
-          <th onclick="sortTable('w1',8)">판매량(추정)</th>
-          <th onclick="sortTable('w1',9)">평균동접</th>
-          <th onclick="sortTable('w1',10)">최근동접</th>
+          <th onclick="sortTable('w1',8)" title="SteamSpy owners 범위 중간값. 실제 판매량과 다를 수 있음">판매량(추정)<sup class="fn">①</sup></th>
+          <th onclick="sortTable('w1',9)" title="수집 기간 전체의 평균 동시접속자 (SteamSpy 추정치)">평균동접<sup class="fn">②</sup></th>
+          <th onclick="sortTable('w1',10)" title="가장 최근 수집일 기준 동시접속자 (SteamSpy 추정치)">최근동접<sup class="fn">②</sup></th>
           <th onclick="sortTable('w1',11)">리뷰수(긍정%)</th>
           <th onclick="sortTable('w1',12)">가격</th>
           <th onclick="sortTable('w1',13)">첫관측일</th>
@@ -391,9 +454,9 @@
           <th onclick="sortTable('w2',5)">퍼블리셔</th>
           <th onclick="sortTable('w2',6)">장르</th>
           <th onclick="sortTable('w2',7)">출시일</th>
-          <th onclick="sortTable('w2',8)">판매량(추정)</th>
-          <th onclick="sortTable('w2',9)">평균동접</th>
-          <th onclick="sortTable('w2',10)">최근동접</th>
+          <th onclick="sortTable('w2',8)" title="SteamSpy owners 범위 중간값. 실제 판매량과 다를 수 있음">판매량(추정)<sup class="fn">①</sup></th>
+          <th onclick="sortTable('w2',9)" title="수집 기간 전체의 평균 동시접속자 (SteamSpy 추정치)">평균동접<sup class="fn">②</sup></th>
+          <th onclick="sortTable('w2',10)" title="가장 최근 수집일 기준 동시접속자 (SteamSpy 추정치)">최근동접<sup class="fn">②</sup></th>
           <th onclick="sortTable('w2',11)">리뷰수(긍정%)</th>
           <th onclick="sortTable('w2',12)">가격</th>
           <th onclick="sortTable('w2',13)">첫관측일</th>
@@ -436,9 +499,9 @@
           <th onclick="sortTable('w1m',5)">퍼블리셔</th>
           <th onclick="sortTable('w1m',6)">장르</th>
           <th onclick="sortTable('w1m',7)">출시일</th>
-          <th onclick="sortTable('w1m',8)">판매량(추정)</th>
-          <th onclick="sortTable('w1m',9)">평균동접</th>
-          <th onclick="sortTable('w1m',10)">최근동접</th>
+          <th onclick="sortTable('w1m',8)" title="SteamSpy owners 범위 중간값. 실제 판매량과 다를 수 있음">판매량(추정)<sup class="fn">①</sup></th>
+          <th onclick="sortTable('w1m',9)" title="수집 기간 전체의 평균 동시접속자 (SteamSpy 추정치)">평균동접<sup class="fn">②</sup></th>
+          <th onclick="sortTable('w1m',10)" title="가장 최근 수집일 기준 동시접속자 (SteamSpy 추정치)">최근동접<sup class="fn">②</sup></th>
           <th onclick="sortTable('w1m',11)">리뷰수(긍정%)</th>
           <th onclick="sortTable('w1m',12)">가격</th>
           <th onclick="sortTable('w1m',13)">첫관측일</th>
@@ -587,14 +650,29 @@ function resetFilters(key) {
 }
 
 // ── 공통 차트 행 렌더 (today / indy 공유) ───────────────────────────────────
-function renderChartRow(g) {
-  const disc   = g.discount_pct||0;
-  const chg    = g.ccu_change;
-  const rowCls = disc>0 ? 'row-discount' : (chg>0 ? 'row-up' : chg<0 ? 'row-down' : '');
-  const rankCls= g.rank<=10 ? 'rank rank-top' : 'rank';
+function renderChartRow(g, key) {
+  const disc = g.discount_pct||0;
+  const chg  = g.ccu_change;
+  let rowCls = '';
+  if (key === 'today') {
+    // 오늘의 차트: 동접 상위 상승 30개 금색 하이라이트, 하락만 붉은 배경
+    if (window._topRisersSet?.has(g.appid)) rowCls = 'row-hot';
+    else if (chg < 0) rowCls = 'row-down';
+  } else if (key === 'indy') {
+    // 퍼블리싱 후보 탭: 의미 있는 후보 보라 하이라이트
+    if (window._highlightIndySet?.has(g.appid)) rowCls = 'row-publish';
+    else if (chg < 0) rowCls = 'row-down';
+  } else {
+    rowCls = disc>0 ? 'row-discount' : (chg>0 ? 'row-up' : chg<0 ? 'row-down' : '');
+  }
+  const rankCls = g.rank<=10 ? 'rank rank-top' : 'rank';
+  // 퍼블리싱 후보 하이라이트 게임엔 이름 옆에 뱃지 표시
+  const hlBadge = (key==='indy' && window._highlightIndySet?.has(g.appid))
+    ? `<span style="margin-left:5px;font-size:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);border-radius:3px;padding:1px 5px;vertical-align:middle">${g.ccu_change==null?'NEW':(g.ccu_change_pct||0)>=15?`↑${g.ccu_change_pct}%`:'TOP'}</span>`
+    : '';
   return `<tr class="${rowCls}">
     <td class="${rankCls}">${g.rank}</td>
-    <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
+    <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a>${hlBadge}</td>
     <td class="muted-cell">${g.developer||'-'}</td>
     <td class="muted-cell">${g.publisher||'-'}</td>
     <td class="muted-cell">${g.genres||'-'}</td>
@@ -618,7 +696,7 @@ function renderPage(key) {
   const tbody   = document.getElementById(`tbody-${key}`);
 
   if (isChart) {
-    tbody.innerHTML = slice.map(renderChartRow).join('');
+    tbody.innerHTML = slice.map(g => renderChartRow(g, key)).join('');
   } else {
     const badgeCls = key==='w1m' ? 'days-4w' : key==='w2' ? 'days-2w' : 'days-1w';
     tbody.innerHTML = slice.map(g => `<tr>
@@ -942,12 +1020,24 @@ fetch('data.json?_='+Date.now())
     const hotGenre     = computeTopGenre(rows.slice(0,100), 0);
     const totalCcuChg  = rows.reduce((s,g) => s+(g.ccu_change||0), 0);
     const chuSign      = totalCcuChg >= 0 ? '+' : '';
+    const topRiser     = [...risingGames].sort((a,b)=>(b.ccu_change||0)-(a.ccu_change||0))[0];
+
+    // 오늘의 차트 — 동접 상승량 기준 Top 30 (금색 음영)
+    const top30Risers = [...risingGames]
+      .sort((a,b) => (b.ccu_change||0) - (a.ccu_change||0))
+      .slice(0, 30);
+    window._topRisersSet = new Set(top30Risers.map(g => g.appid));
 
     document.getElementById('stats-today').innerHTML = `
       <div class="stat-card">
         <div class="stat-label">🏅 1위 게임</div>
         <div class="stat-value" style="font-size:14px;line-height:1.3">${top?.name||'-'}</div>
         <div class="stat-sub">동접 ${fmt(top?.ccu)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📈 최다 상승 게임</div>
+        <div class="stat-value" style="font-size:13px;color:var(--up);line-height:1.3">${topRiser?.name||'-'}</div>
+        <div class="stat-sub">+${fmt(topRiser?.ccu_change||0)} (+${topRiser?.ccu_change_pct||0}%)</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">📊 전체 동향</div>
@@ -982,6 +1072,17 @@ fetch('data.json?_='+Date.now())
     };
     const indyCandidates = rows.filter(g => !isBig(g));
     window._indyCandidates = [...indyCandidates].sort((a,b) => (b.ccu||0)-(a.ccu||0));
+
+    // 퍼블리싱 후보 하이라이트 기준 (3가지 중 하나 충족):
+    //   A. 신규 진입 (전일 기록 없음)
+    //   B. CCU 전일 대비 15%+ 급상승
+    //   C. 전체 순위 200위 이내 (동접 검증된 인디)
+    const isPublishHL = g =>
+      g.ccu_change == null ||
+      (g.ccu_change_pct || 0) >= 15 ||
+      g.rank <= 200;
+    const hlArr = [...indyCandidates].filter(isPublishHL).slice(0, 25);
+    window._highlightIndySet = new Set(hlArr.map(g => g.appid));
 
     const indyRising  = indyCandidates.filter(g => (g.ccu_change||0) > 0);
     const topRiser    = [...indyRising].sort((a,b)=>(b.ccu_change_pct||0)-(a.ccu_change_pct||0))[0];
