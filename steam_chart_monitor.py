@@ -754,6 +754,9 @@ def load_existing() -> pd.DataFrame:
             "정가(₩)": "original_price_krw",
         }
         df = df.rename(columns=KR_TO_EN)
+        # Excel에서 읽은 appid는 float64로 저장됨 → int로 변환해야 merge가 정상 작동
+        if "appid" in df.columns:
+            df["appid"] = pd.to_numeric(df["appid"], errors="coerce").fillna(0).astype(int)
         df["date"] = pd.to_datetime(df["date"]).dt.date.astype(str)
         print(f"  ✓ 기존 데이터 로드: {len(df)}행 ({df['date'].nunique()}일치)")
         return df
