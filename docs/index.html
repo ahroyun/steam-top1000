@@ -1079,9 +1079,7 @@ fetch('data.json?_='+Date.now())
     // ccu_change 가 모두 0인 경우 대비 (SteamSpy 추정치 특성상 단기 변동 없음)
     const anyRising    = risingGames.length > 0;
     const rank2Game    = rows[1];  // 1위는 별도 카드로 표시되므로 2위 게임 사용
-    const top10AvgCcu  = rows.length > 0
-      ? Math.round(rows.slice(0, 10).reduce((s,g) => s+(g.ccu||0), 0) / Math.min(10, rows.length))
-      : 0;
+    const top10TotalCcu = rows.slice(0, 10).reduce((s,g) => s+(g.ccu||0), 0);
 
     // 오늘의 차트 — 동접 상승량 기준 Top 30 (금색 음영)
     // 상승 게임이 없으면 동접 기준 Top 30 (= 랭킹 순)으로 대체
@@ -1109,21 +1107,9 @@ fetch('data.json?_='+Date.now())
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">📊 전체 동향</div>
-        <div class="stat-value" style="font-size:17px">
-          ${(risingGames.length > 0 || fallingGames.length > 0)
-            ? `<span style="color:var(--up)">↑${risingGames.length}</span>
-               <span style="color:var(--muted);font-weight:400;font-size:14px"> / </span>
-               <span style="color:var(--down)">↓${fallingGames.length}</span>`
-            : `<span style="color:var(--muted);font-size:13px;font-weight:400">전일 변동 없음</span>`
-          }
-        </div>
-        <div class="stat-sub">
-          ${(risingGames.length > 0 || fallingGames.length > 0)
-            ? `전일 대비 합산 ${chuSign}${fmt(Math.abs(totalCcuChg))}`
-            : `Top 10 평균 동접 ${fmt(top10AvgCcu)}`
-          }
-        </div>
+        <div class="stat-label">📊 Top 10 총 동접</div>
+        <div class="stat-value" style="font-size:18px">${fmtM(top10TotalCcu)}</div>
+        <div class="stat-sub">상위 10개 게임 합산</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">🔥 핫 장르 (Top 100)</div>
