@@ -459,15 +459,17 @@ def add_ccu_change(today_df: pd.DataFrame, existing_df: pd.DataFrame) -> pd.Data
     today_df["appid"]  = today_df["appid"].astype(int)
 
     merged = today_df.merge(prev_df, on="appid", how="left")
-    matched = merged["ccu_prev"].notna().sum()
+    matched = int(merged["ccu_prev"].notna().sum())
     print(f"  ✓ 전일 매칭: {matched}/{len(merged)}개 게임 (매칭 실패 시 ccu_change=null)")
 
-    merged["ccu_change"] = (merged["ccu"] - merged["ccu_prev"]).where(
-        merged["ccu_prev"].notna()
-    ).astype("Int64")
+    mask = merged["ccu_prev"].notna()
+
+    # float64 사용 — Int64(nullable) 는 pd.NA 를 생성해 openpyxl 오류 유발
+    ccu_diff = (merged["ccu"] - merged["ccu_prev"]).where(mask)   # float64, NaN
+    merged["ccu_change"]     = ccu_diff.where(mask)               # NaN → null in JSON / empty in Excel
     merged["ccu_change_pct"] = (
         (merged["ccu"] - merged["ccu_prev"]) / merged["ccu_prev"] * 100
-    ).where(merged["ccu_prev"].notna()).round(1)
+    ).where(mask).round(1)
 
     return merged.drop(columns=["ccu_prev"])
 
@@ -779,7 +781,8 @@ def write_json(today_df, lr1, lr2, lr1m, upcoming, accumulated_days: int = 0):
     def to_records(df, cols=None):
         if df.empty:
             return []
-        d = df[cols] if cols else df
+        d = df[cols].copy() if cols else df.copy()
+        # float NaN / Int64 pd.NA → null (pandas to_json이 자동 처리)
         return json.loads(d.to_json(orient="records", force_ascii=False))
 
     TODAY_COLS = [
