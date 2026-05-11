@@ -468,31 +468,46 @@ def _fetch_upcoming_search(seen: set, date_from, date_to) -> list:
 
     filter=popularcomingsoon — Steam 인기 예정작 순위
     (store.steampowered.com/search/?filter=popularcomingsoon&os=win 과 동일 소스)
+    페이지당 100개씩 최대 5페이지(500개)까지 수집.
     인기순이므로 날짜 사전 필터 없이 전체 수집 후 메인 루프에서 범위 적용.
     """
-    items = []
-    url = (
+    items      = []
+    base_url   = (
         "https://store.steampowered.com/search/results/"
         "?filter=popularcomingsoon&os=win"
         "&category1=998&count=100&cc=kr&l=koreana&json=1"
     )
-    try:
-        r    = requests.get(url, headers=HEADERS, timeout=15)
-        data = r.json()
-        raw  = data.get("items", [])
-        print(f"  [Steam 인기 예정작 popularcomingsoon] {len(raw)}개")
-        for it in raw:
-            aid = it.get("id") or it.get("appid")
-            if not aid or aid in seen:
-                continue
-            seen.add(aid)
-            items.append({
-                "id":           aid,
-                "name":         it.get("name", ""),
-                "header_image": it.get("logo", "") or it.get("header_image", ""),
-            })
-    except Exception as e:
-        print(f"  ⚠ Steam 인기 예정작 수집 실패: {e}")
+    MAX_PAGES  = 5   # 최대 500개 (충분한 인기 예정작 커버)
+
+    for page in range(MAX_PAGES):
+        start = page * 100
+        url   = base_url + (f"&start={start}" if start > 0 else "")
+        try:
+            r    = requests.get(url, headers=HEADERS, timeout=15)
+            data = r.json()
+            raw  = data.get("items", [])
+            if not raw:
+                print(f"  [popularcomingsoon p{page+1}] 결과 없음, 중단")
+                break
+            print(f"  [popularcomingsoon p{page+1}] {len(raw)}개")
+            for it in raw:
+                aid = it.get("id") or it.get("appid")
+                if not aid or aid in seen:
+                    continue
+                seen.add(aid)
+                items.append({
+                    "id":           aid,
+                    "name":         it.get("name", ""),
+                    "header_image": it.get("logo", "") or it.get("header_image", ""),
+                })
+            if len(raw) < 100:   # 마지막 페이지
+                break
+            time.sleep(1)        # 페이지 간 요청 간격
+        except Exception as e:
+            print(f"  ⚠ Steam 인기 예정작 p{page+1} 수집 실패: {e}")
+            break
+
+    print(f"  [popularcomingsoon 합계] 신규 {len(items)}개")
     return items
 
 
