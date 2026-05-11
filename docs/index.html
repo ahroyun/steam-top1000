@@ -313,7 +313,7 @@
           <option value="">전체</option>
           <option value="진입">🆕 진입 (차트 첫 등장)</option>
           <option value="↑%">📈 급상승 (CCU +15%↑)</option>
-          <option value="신작">🌱 신작 (출시 30일↓)</option>
+          <option value="신작">🌱 신작 (출시 1년↓)</option>
         </select>
       </div>
       <div class="filter-group">
@@ -384,7 +384,7 @@
           <option value="">전체</option>
           <option value="진입">🆕 진입 (차트 첫 등장)</option>
           <option value="↑%">📈 급상승 (CCU +15%↑)</option>
-          <option value="신작">🌱 신작 (출시 30일↓)</option>
+          <option value="신작">🌱 신작 (출시 1년↓)</option>
         </select>
       </div>
       <div class="filter-group">
@@ -1467,7 +1467,7 @@ fetch('data.json?_='+Date.now())
       const badges = [];
       if (g.ccu_change == null)             badges.push('진입');
       if ((g.ccu_change_pct || 0) >= 15)   badges.push('↑%');
-      if (isNewRelease(g.release_date))     badges.push('신작');
+      if (isNewRelease(g.release_date, 365)) badges.push('신작');
       if (badges.length) todayBadgeMap.set(g.appid, badges);
     });
     window._todayBadgeMap = todayBadgeMap;
@@ -1530,7 +1530,7 @@ fetch('data.json?_='+Date.now())
     // 퍼블리싱 후보 하이라이트 기준 (3가지 중 하나 충족):
     //   A. 차트 첫 진입 (전일 기록 없음)
     //   B. CCU 전일 대비 15%+ 급상승
-    //   C. 출시 30일 이내 신작
+    //   C. 출시 1년 이내 신작
     const isPublishHL = g =>
       g.ccu_change == null ||
       (g.ccu_change_pct || 0) >= 15 ||
@@ -1544,7 +1544,7 @@ fetch('data.json?_='+Date.now())
       const badges = [];
       if (g.ccu_change == null)           badges.push('진입');
       if ((g.ccu_change_pct || 0) >= 15) badges.push('↑%');
-      if (isNewRelease(g.release_date))   badges.push('신작');
+      if (isNewRelease(g.release_date, 365)) badges.push('신작');
       if (badges.length) indyBadgeMap.set(g.appid, badges);
     });
     window._indyBadgeMap = indyBadgeMap;
