@@ -311,9 +311,9 @@
         <span class="filter-label">뱃지</span>
         <select class="f-select" id="badge-today" onchange="applyFilters('today')">
           <option value="">전체</option>
-          <option value="NEW">🆕 NEW</option>
-          <option value="↑%">📈 급상승</option>
-          <option value="TOP">🏅 TOP 200</option>
+          <option value="진입">🆕 진입 (차트 첫 등장)</option>
+          <option value="↑%">📈 급상승 (CCU +15%↑)</option>
+          <option value="신작">🌱 신작 (출시 30일↓)</option>
         </select>
       </div>
       <div class="filter-group">
@@ -362,9 +362,9 @@
         <span class="filter-label">뱃지</span>
         <select class="f-select" id="badge-indy" onchange="applyFilters('indy')">
           <option value="">전체</option>
-          <option value="NEW">🆕 NEW</option>
-          <option value="↑%">📈 급상승 (↑%)</option>
-          <option value="TOP">🏅 TOP 200</option>
+          <option value="진입">🆕 진입 (차트 첫 등장)</option>
+          <option value="↑%">📈 급상승 (CCU +15%↑)</option>
+          <option value="신작">🌱 신작 (출시 30일↓)</option>
         </select>
       </div>
       <div class="filter-group">
@@ -623,20 +623,20 @@
         <!-- 퍼블리싱 후보 하이라이트 기준 -->
         <div class="guide-card" style="border-color:rgba(168,85,247,.3)">
           <h3 style="color:var(--purple)">★ 퍼블리싱 후보 — 하이라이트 기준</h3>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">아래 조건 중 하나 이상 충족 시 <strong style="color:var(--text)">보라 음영</strong> + 뱃지 표시 (최대 25개)</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">아래 조건 중 하나 이상 충족 시 뱃지 표시. 오늘의 차트 · 퍼블리싱 후보 탭 공통 적용</div>
           <div class="guide-row">
-            <div class="guide-key"><span class="guide-badge" style="background:rgba(168,85,247,.25);color:var(--purple)">NEW</span></div>
-            <div class="guide-val">전일 기록이 없는 <strong>신규 진입</strong> 게임 (처음 1,000위 안에 들어온 날)</div>
+            <div class="guide-key"><span class="guide-badge" style="background:rgba(168,85,247,.25);color:var(--purple)">진입</span></div>
+            <div class="guide-val">전일 데이터가 없는 <strong>차트 첫 등장</strong> 게임. 오랜 게임이 할인·이벤트로 갑자기 진입한 경우도 포함</div>
           </div>
           <div class="guide-row">
-            <div class="guide-key"><span class="guide-badge" style="background:rgba(79,160,72,.2);color:var(--up)">↑%</span></div>
-            <div class="guide-val">전일 대비 동접자 <strong>+15% 이상 급상승</strong></div>
+            <div class="guide-key"><span class="guide-badge" style="background:rgba(79,160,72,.2);color:var(--up)">급상승</span></div>
+            <div class="guide-val">전일 대비 Steam 공식 CCU <strong>+15% 이상 상승</strong></div>
           </div>
           <div class="guide-row">
-            <div class="guide-key"><span class="guide-badge" style="background:rgba(102,192,244,.2);color:var(--accent)">TOP</span></div>
-            <div class="guide-val">전체 차트 <strong>200위 이내</strong> 진입 (Steam CCU 검증 기준)</div>
+            <div class="guide-key"><span class="guide-badge" style="background:rgba(74,184,154,.2);color:var(--mint)">신작</span></div>
+            <div class="guide-val">Steam 출시일 기준 <strong>30일 이내</strong> 최신 출시작. 진입 뱃지와 동시에 붙으면 출시 직후 첫 차트 진입을 의미</div>
           </div>
-          <div class="guide-note">하이라이트 후보가 없을 경우 순위 1~30위 게임을 자동으로 하이라이트</div>
+          <div class="guide-note">퍼블리싱 후보 탭에서는 하이라이트 후보가 없을 경우 순위 1~30위 게임을 자동으로 보라 음영 처리</div>
         </div>
 
         <!-- 롱런 집계 기준 -->
@@ -731,6 +731,15 @@ const sortState = {
 
 let _upcomingAll = [];
 let _selectedDay = 'all';
+
+// ── 신작 여부 판별 (출시 30일 이내) ───────────────────────────────────────────
+function isNewRelease(dateStr, days=30) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr.replace(',', ''));
+  if (isNaN(d.getTime())) return false;
+  const diff = Date.now() - d.getTime();
+  return diff >= 0 && diff <= days * 86400000;
+}
 
 // ── 포맷 헬퍼 ─────────────────────────────────────────────────────────────────
 const fmt  = n => (n==null||n==='') ? '-' : Number(n).toLocaleString('ko-KR');
@@ -883,9 +892,10 @@ function renderChartRow(g, key) {
                     key === 'today' ? window._todayBadgeMap : null;
   const _badges = _badgeMap?.get(g.appid) || [];
   const hlBadge = _badges.map(b => {
-    if (b === 'NEW') return `<span style="margin-left:5px;font-size:10px;font-weight:700;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(168,85,247,.5);border-radius:3px;padding:1px 5px;vertical-align:middle">NEW</span>`;
+    if (b === '진입') return `<span style="margin-left:5px;font-size:10px;font-weight:700;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(168,85,247,.5);border-radius:3px;padding:1px 5px;vertical-align:middle">진입</span>`;
     if (b === '↑%')  return `<span style="margin-left:5px;font-size:10px;font-weight:700;background:var(--green-bg);color:var(--up);border:1px solid rgba(79,160,72,.5);border-radius:3px;padding:1px 5px;vertical-align:middle">급상승</span>`;
-    /* TOP */        return `<span style="margin-left:5px;font-size:10px;font-weight:700;background:rgba(102,192,244,.1);color:var(--accent);border:1px solid rgba(102,192,244,.4);border-radius:3px;padding:1px 5px;vertical-align:middle">TOP</span>`;
+    if (b === '신작') return `<span style="margin-left:5px;font-size:10px;font-weight:700;background:var(--mint-bg);color:var(--mint);border:1px solid rgba(74,184,154,.5);border-radius:3px;padding:1px 5px;vertical-align:middle">신작</span>`;
+    return '';
   }).join('');
   return `<tr class="${rowCls}">
     <td class="${rankCls}" style="white-space:nowrap">${rankFmt(g.rank, g.rank_change)}</td>
@@ -1294,13 +1304,13 @@ fetch('data.json?_='+Date.now())
       : rows.slice(0, 30);
     window._topRisersSet = new Set(top30Risers.map(g => g.appid));
 
-    // 오늘의 차트 뱃지 맵 (NEW / ↑% / TOP 200)
+    // 오늘의 차트 뱃지 맵 (진입 / ↑% / 신작)
     const todayBadgeMap = new Map();
     rows.forEach(g => {
       const badges = [];
-      if (g.ccu_change == null)              badges.push('NEW');
-      if ((g.ccu_change_pct || 0) >= 15)    badges.push('↑%');
-      if (g.rank <= 200)                     badges.push('TOP');
+      if (g.ccu_change == null)             badges.push('진입');
+      if ((g.ccu_change_pct || 0) >= 15)   badges.push('↑%');
+      if (isNewRelease(g.release_date))     badges.push('신작');
       if (badges.length) todayBadgeMap.set(g.appid, badges);
     });
     window._todayBadgeMap = todayBadgeMap;
@@ -1359,23 +1369,23 @@ fetch('data.json?_='+Date.now())
     window._indyCandidates = [...indyCandidates].sort((a,b) => (b.ccu||0)-(a.ccu||0));
 
     // 퍼블리싱 후보 하이라이트 기준 (3가지 중 하나 충족):
-    //   A. 신규 진입 (전일 기록 없음)
+    //   A. 차트 첫 진입 (전일 기록 없음)
     //   B. CCU 전일 대비 15%+ 급상승
-    //   C. 전체 순위 200위 이내 (동접 검증된 인디)
+    //   C. 출시 30일 이내 신작
     const isPublishHL = g =>
       g.ccu_change == null ||
       (g.ccu_change_pct || 0) >= 15 ||
-      g.rank <= 200;
+      isNewRelease(g.release_date);
     const hlArr = [...indyCandidates].filter(isPublishHL).slice(0, 25);
     window._highlightIndySet = new Set(hlArr.map(g => g.appid));
 
-    // 뱃지 맵: 모든 인디 후보에 대해 해당하는 뱃지 목록 (NEW / ↑% / TOP)
+    // 뱃지 맵: 모든 인디 후보에 대해 해당하는 뱃지 목록 (진입 / ↑% / 신작)
     const indyBadgeMap = new Map();
     indyCandidates.forEach(g => {
       const badges = [];
-      if (g.ccu_change == null) badges.push('NEW');
+      if (g.ccu_change == null)           badges.push('진입');
       if ((g.ccu_change_pct || 0) >= 15) badges.push('↑%');
-      if (g.rank <= 200) badges.push('TOP');
+      if (isNewRelease(g.release_date))   badges.push('신작');
       if (badges.length) indyBadgeMap.set(g.appid, badges);
     });
     window._indyBadgeMap = indyBadgeMap;
