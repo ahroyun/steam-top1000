@@ -781,19 +781,25 @@ let _upcomingAll = [];
 let _selectedDay = 'all'; // 'all' | 'YYYY-MM' (월별) | 'YYYY-MM-DD' (이번달 일별) | 'no-date'
 
 // ── 신작 여부 판별 (출시 N일 이내) ───────────────────────────────────────────
+// parseUpcomingDate 와 동일한 정규식으로 파싱 ("7 May, 2026" → "May 7, 2026")
+function _parseDateSafe(dateStr) {
+  if (!dateStr) return null;
+  const fixed = dateStr.replace(/(\d+)\s([A-Za-z]+),?\s(\d{4})/, '$2 $1, $3');
+  const d = new Date(fixed);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function isNewRelease(dateStr, days=30) {
-  if (!dateStr) return false;
-  const d = new Date(dateStr.replace(',', ''));
-  if (isNaN(d.getTime())) return false;
+  const d = _parseDateSafe(dateStr);
+  if (!d) return false;
   const diff = Date.now() - d.getTime();
   return diff >= 0 && diff <= days * 86400000;
 }
 
 // 출시일 기준 경과일 체크 — 날짜 없으면 true(통과)로 처리 (데이터 누락 게임 제외 방지)
 function releasedWithin(dateStr, days) {
-  if (!dateStr) return true;
-  const d = new Date(dateStr.replace(',', ''));
-  if (isNaN(d.getTime())) return true;
+  const d = _parseDateSafe(dateStr);
+  if (!d) return true;   // 파싱 실패 = 데이터 누락 → 통과
   const diff = Date.now() - d.getTime();
   return diff >= 0 && diff <= days * 86400000;
 }
