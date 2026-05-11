@@ -40,7 +40,7 @@ import json
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 EXCEL_PATH   = os.path.join(SCRIPT_DIR, "steam_chart_monitor.xlsx")
 JSON_PATH    = os.path.join(SCRIPT_DIR, "docs", "data.json")
-TOP_N        = 1000
+TOP_N        = 2000
 LONGRUN_1W   = 7
 LONGRUN_2W   = 14
 LONGRUN_1M   = 30
@@ -704,6 +704,19 @@ def collect_today_data(existing_df=None) -> pd.DataFrame:
                 }
         print(f"  스토어 캐시 {len(store_cache)}개 — 미캐시 게임만 Steam API 호출")
 
+    # ── Steam CCU 사전 조회 → 최종 대상 게임 확정 (불필요한 API 호출 방지) ──
+    # 루프 전에 미리 CCU를 일괄 조회해 상위 TOP_N을 확정 → 탈락 게임은 store/reviews 호출 스킵
+    print("\n▶ Steam 실시간 CCU 사전 조회 (최종 대상 확정)...")
+    all_appids  = [g["appid"] for g in sp_games]
+    steam_ccu   = fetch_steam_ccu_bulk(all_appids)
+
+    for g in sp_games:
+        g["ccu_live"] = steam_ccu.get(g["appid"]) or g["ccu"]  # Steam CCU 없으면 SteamSpy 폴백
+
+    sp_games.sort(key=lambda x: x["ccu_live"], reverse=True)
+    sp_games = sp_games[:TOP_N]   # 여기서 최종 TOP_N 확정 — 이후 루프는 이 게임들만 처리
+    print(f"  ✓ 최종 대상 {len(sp_games)}개 확정 (Steam CCU 기준)")
+
     today_str = today_kst().isoformat()
     rows = []
 
@@ -721,7 +734,7 @@ def collect_today_data(existing_df=None) -> pd.DataFrame:
         reviews = fetch_reviews(appid)
         time.sleep(0.3)
 
-        name = g["name_sp"]  # Steam Store API는 이제 name 미반환, SteamSpy 이름 사용
+        name = g["name_sp"]
 
         # 개발사/퍼블리셔: SteamSpy 1차 → 없으면 스팀 상점 페이지 스크래핑 폴백
         developer = g.get("developer")
@@ -737,7 +750,7 @@ def collect_today_data(existing_df=None) -> pd.DataFrame:
 
         rows.append({
             "date":               today_str,
-            "rank":               g["rank"],
+            "rank":               i,                   # 사전 정렬 후 순위
             "appid":              appid,
             "name":               name,
             "developer":          developer,
@@ -745,7 +758,8 @@ def collect_today_data(existing_df=None) -> pd.DataFrame:
             "genres":             genres,
             "release_date":       store["release_date"],
             "owners_estimate":    owners_estimate,
-            "ccu":                g["ccu"],
+            "ccu":                g["ccu_live"],        # 이미 Steam CCU 적용
+            "ccu_steamspy":       g["ccu"],             # SteamSpy 원본 보존
             "review_score_pct":   reviews["review_score_pct"],
             "total_reviews":      reviews["total_reviews"],
             "price_krw":          store["price_krw"],
@@ -755,28 +769,13 @@ def collect_today_data(existing_df=None) -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
 
-    # ── Steam 공식 실시간 CCU로 교체 (SteamSpy CCU는 다주간 평균이라 변동 미미) ──
-    print("\n▶ Steam 공식 실시간 CCU 조회 중...")
-    steam_ccu = fetch_steam_ccu_bulk(df["appid"].tolist())
-    df["ccu_steamspy"] = df["ccu"]   # SteamSpy 원본 보존
-    df["ccu"] = df["appid"].map(steam_ccu)
-    # 조회 실패한 게임은 SteamSpy CCU 폴백
-    fallback_mask = df["ccu"].isna()
-    df.loc[fallback_mask, "ccu"] = df.loc[fallback_mask, "ccu_steamspy"]
-    df["ccu"] = df["ccu"].fillna(0).astype(int)
-    # CCU 출처 추적: Steam 공식=steam / 폴백=steamspy
+    # CCU 출처 추적
+    fallback_mask = ~df["appid"].isin(steam_ccu.keys())
     df["ccu_source"] = "steam"
     df.loc[fallback_mask, "ccu_source"] = "steamspy"
     n_real     = int((~fallback_mask).sum())
     n_fallback = int(fallback_mask.sum())
-    print(f"  ✓ 실시간 CCU 적용: {n_real}개 / SteamSpy 폴백: {n_fallback}개")
-
-    # ── Steam 실시간 CCU 기준으로 재정렬 후 실제 top N 확정 ───────────────
-    # SteamSpy 2페이지(~2000개) 후보 → Steam CCU 기준 상위 TOP_N만 유지
-    df = df.sort_values("ccu", ascending=False).reset_index(drop=True)
-    df = df.head(TOP_N).copy()
-    df["rank"] = range(1, len(df) + 1)
-    print(f"  ✓ Steam 실시간 CCU 기준 재정렬 → 최종 {len(df)}개 (Top {TOP_N})")
+    print(f"\n  ✓ 수집 완료: {len(df)}개 | Steam CCU {n_real}개 / SteamSpy 폴백 {n_fallback}개")
 
     return df
 
