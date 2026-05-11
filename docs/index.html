@@ -612,6 +612,14 @@
             <div class="guide-key">② 개발사</div>
             <div class="guide-val">퍼블리셔·개발사 명칭에 <strong>대형사 키워드 미포함</strong>. 퍼블리셔 미기재 시 개발사 명칭 적용</div>
           </div>
+          <div class="guide-row">
+            <div class="guide-key">③ 출시 경과</div>
+            <div class="guide-val">출시일 기준 <strong>18개월(548일) 이내</strong> — 이미 시장에서 자리잡은 장수 타이틀 제외. 출시일 미기재 게임은 통과 처리</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">④ 판매량</div>
+            <div class="guide-val">SteamSpy 추정 판매량 <strong>100만 미만</strong> — 이미 글로벌 메가히트 된 타이틀 제외. 판매량 데이터 없는 게임은 통과 처리</div>
+          </div>
           <hr class="guide-divider" />
           <div style="font-size:11px;color:var(--muted);line-height:1.7">
             <strong style="color:var(--text)">제외 키워드 (일부)</strong><br>
@@ -732,11 +740,20 @@ const sortState = {
 let _upcomingAll = [];
 let _selectedDay = 'all';
 
-// ── 신작 여부 판별 (출시 30일 이내) ───────────────────────────────────────────
+// ── 신작 여부 판별 (출시 N일 이내) ───────────────────────────────────────────
 function isNewRelease(dateStr, days=30) {
   if (!dateStr) return false;
   const d = new Date(dateStr.replace(',', ''));
   if (isNaN(d.getTime())) return false;
+  const diff = Date.now() - d.getTime();
+  return diff >= 0 && diff <= days * 86400000;
+}
+
+// 출시일 기준 경과일 체크 — 날짜 없으면 true(통과)로 처리 (데이터 누락 게임 제외 방지)
+function releasedWithin(dateStr, days) {
+  if (!dateStr) return true;
+  const d = new Date(dateStr.replace(',', ''));
+  if (isNaN(d.getTime())) return true;
   const diff = Date.now() - d.getTime();
   return diff >= 0 && diff <= days * 86400000;
 }
@@ -1365,7 +1382,17 @@ fetch('data.json?_='+Date.now())
       const pub = ((g.publisher||'')+(g.developer||'')).toLowerCase();
       return BIG_PUB.some(b => pub.includes(b));
     };
-    const indyCandidates = rows.filter(g => !isBig(g));
+    // 퍼블리싱 후보 선별 기준:
+    //   ① 대형사 키워드 미포함
+    //   ② 출시 18개월(548일) 이내 — 이미 시장에서 자리잡은 게임 제외
+    //   ③ 판매량 추정 100만 미만 — 이미 메가히트 타이틀 제외 (null은 통과)
+    const INDY_RELEASE_DAYS = 548;  // 18개월
+    const INDY_OWNERS_MAX   = 1_000_000;
+    const indyCandidates = rows.filter(g =>
+      !isBig(g) &&
+      releasedWithin(g.release_date, INDY_RELEASE_DAYS) &&
+      (g.owners_estimate == null || g.owners_estimate < INDY_OWNERS_MAX)
+    );
     window._indyCandidates = [...indyCandidates].sort((a,b) => (b.ccu||0)-(a.ccu||0));
 
     // 퍼블리싱 후보 하이라이트 기준 (3가지 중 하나 충족):
