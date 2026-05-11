@@ -78,16 +78,21 @@ def parse_owners_midpoint(owners_str: str) -> int:
 
 # ── SteamSpy API (상위 게임 목록) ────────────────────────────────────────────
 
+STEAMSPY_PAGES = 2   # page당 ~1000개 → 총 ~2000개 후보에서 Steam 실시간 CCU로 실제 top N 추림
+                     # SteamSpy는 F2P·신작 커버리지가 부족하므로 후보를 넉넉히 수집
+
 def fetch_steamspy_top(n: int = 1000) -> list:
     """
-    SteamSpy all 엔드포인트로 상위 게임 목록 수집.
-    page=0 이 최근 2주 플레이어 기준 상위 ~1000개를 반환함.
-    결과를 CCU 기준으로 정렬해 순위를 매김.
-    """
-    games = []
-    pages_needed = max(1, (n + 999) // 1000)
+    SteamSpy all 엔드포인트로 게임 후보 목록 수집.
 
-    for page in range(pages_needed):
+    STEAMSPY_PAGES 페이지만큼 수집(기본 2페이지 ≈ 2000개)해 후보를 넓힌 뒤
+    이후 fetch_steam_ccu_bulk 에서 Steam 실시간 CCU로 재정렬 → 실제 top N 확정.
+    SteamSpy만 쓰면 F2P 게임(Dota 2 등)·신작이 누락되는 문제를 완화.
+    """
+    seen  = set()
+    games = []
+
+    for page in range(STEAMSPY_PAGES):
         url = f"https://steamspy.com/api.php?request=all&page={page}"
         print(f"  SteamSpy all 페이지 {page} 수집 중...")
         for attempt in range(3):
@@ -101,6 +106,9 @@ def fetch_steamspy_top(n: int = 1000) -> list:
                         appid = int(appid_str)
                     except ValueError:
                         continue
+                    if appid in seen:
+                        continue
+                    seen.add(appid)
                     games.append({
                         "appid":      appid,
                         "name_sp":    info.get("name", ""),
@@ -118,11 +126,13 @@ def fetch_steamspy_top(n: int = 1000) -> list:
 
         time.sleep(2)
 
+    # SteamSpy CCU 기준 1차 정렬 — Steam 실시간 CCU로 나중에 재정렬됨
     games.sort(key=lambda x: x["ccu"], reverse=True)
     for i, g in enumerate(games, 1):
         g["rank"] = i
 
-    return games[:n]
+    # 후보는 넉넉하게 유지 (최소 n*2, 최대 전체) — CCU 재정렬 후 top N으로 확정
+    return games[:max(n * 2, len(games))]
 
 
 # ── Steam Store API ───────────────────────────────────────────────────────────
@@ -761,11 +771,12 @@ def collect_today_data(existing_df=None) -> pd.DataFrame:
     n_fallback = int(fallback_mask.sum())
     print(f"  ✓ 실시간 CCU 적용: {n_real}개 / SteamSpy 폴백: {n_fallback}개")
 
-    # ── Steam 실시간 CCU 기준으로 순위 재정렬 ──────────────────────────────
-    # SteamSpy 순서(ccu_steamspy 기준)를 Steam 실시간 CCU 기준으로 교체
+    # ── Steam 실시간 CCU 기준으로 재정렬 후 실제 top N 확정 ───────────────
+    # SteamSpy 2페이지(~2000개) 후보 → Steam CCU 기준 상위 TOP_N만 유지
     df = df.sort_values("ccu", ascending=False).reset_index(drop=True)
+    df = df.head(TOP_N).copy()
     df["rank"] = range(1, len(df) + 1)
-    print(f"  ✓ Steam 실시간 CCU 기준 순위 재정렬 완료")
+    print(f"  ✓ Steam 실시간 CCU 기준 재정렬 → 최종 {len(df)}개 (Top {TOP_N})")
 
     return df
 
