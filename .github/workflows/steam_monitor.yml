@@ -34,26 +34,7 @@ jobs:
         run: |
           if [ -f steam_chart_monitor.xlsx ]; then
             echo "✓ Excel 존재: $(du -h steam_chart_monitor.xlsx | cut -f1)"
-            python -c "
-import pandas as pd
-try:
-    df = pd.read_excel('steam_chart_monitor.xlsx', sheet_name='일별 스냅샷')
-    print(f'  전체 행 수: {len(df)}')
-    print(f'  컬럼: {list(df.columns[:5])}')
-    # AppID 컬럼 타입
-    appid_col = [c for c in df.columns if c in ('AppID','appid','앱ID')]
-    if appid_col:
-        col = appid_col[0]
-        print(f'  AppID 컬럼명={col}, dtype={df[col].dtype}, 예시값={df[col].iloc[0] if len(df)>0 else \"없음\"}')
-    # 날짜 컬럼
-    date_col = [c for c in df.columns if c in ('날짜','date')]
-    if date_col:
-        col = date_col[0]
-        dates = df[col].dropna().unique()
-        print(f'  날짜 컬럼명={col}, unique={len(dates)}일치, 최근날짜={max(dates)}')
-except Exception as e:
-    print(f'  ⚠ 읽기 오류: {e}')
-"
+            echo "  행 수: $(python -c "import pandas as pd; df=pd.read_excel('steam_chart_monitor.xlsx',sheet_name='일별 스냅샷'); print(f'{len(df)}행 ({df[\"날짜\"].nunique()}일치)')" 2>/dev/null || echo "읽기 실패")"
           else
             echo "⚠ Excel 파일 없음 (첫 실행 또는 미커밋)"
           fi
@@ -70,7 +51,7 @@ except Exception as e:
         run: echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: 파일 저장소에 커밋
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+        if: github.event.inputs.dry_run != 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -79,7 +60,7 @@ except Exception as e:
           git push
 
       - name: 이메일로 결과 전송
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+        if: github.event.inputs.dry_run != 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
