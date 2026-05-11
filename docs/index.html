@@ -322,6 +322,26 @@
         <span class="filter-label">~</span>
         <input class="f-input narrow" id="ccu-max-today" type="number" placeholder="최대" oninput="applyFilters('today')" />
       </div>
+      <div class="filter-group">
+        <span class="filter-label">출시</span>
+        <select class="f-select" id="release-today" onchange="applyFilters('today')">
+          <option value="">전체</option>
+          <option value="12">1년 이내</option>
+          <option value="24">2년 이내</option>
+          <option value="36">3년 이내</option>
+          <option value="60">5년 이내</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">판매량</span>
+        <select class="f-select" id="owners-today" onchange="applyFilters('today')">
+          <option value="">전체</option>
+          <option value="500000">50만 미만</option>
+          <option value="1000000">100만 미만</option>
+          <option value="2000000">200만 미만</option>
+          <option value="5000000">500만 미만</option>
+        </select>
+      </div>
       <button class="filter-reset" onclick="resetFilters('today')">초기화</button>
       <span class="count-label" id="count-today"></span>
     </div>
@@ -758,7 +778,7 @@ const sortState = {
 };
 
 let _upcomingAll = [];
-let _selectedDay = 'all';
+let _selectedDay = 'all'; // 'all' | 'YYYY-MM' (월별) | 'YYYY-MM-DD' (이번달 일별) | 'no-date'
 
 // ── 신작 여부 판별 (출시 N일 이내) ───────────────────────────────────────────
 function isNewRelease(dateStr, days=30) {
@@ -1098,58 +1118,125 @@ function renderLRStats(key, lrData, minDays) {
 }
 
 // ── 신작 캘린더 ───────────────────────────────────────────────────────────────
+
+// 날짜 문자열 → Date 객체 (파싱 실패 시 null)
+function parseUpcomingDate(str) {
+  if (!str) return null;
+  const fixed = str.replace(/(\d+)\s([A-Za-z]+),?\s(\d{4})/, '$2 $1, $3');
+  const d = new Date(fixed);
+  return isNaN(d) ? null : d;
+}
+
+// 날짜 → 'YYYY-MM-DD' 키
+function toDayKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 날짜 → 'YYYY-MM' 키
+function toMonthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+// 이번 달 날짜 탭 라벨: "오늘 · 11일", "내일 · 12일", "+3일 · 14일" 등
+function formatDayTabLabel(dayKey) {
+  const d = new Date(dayKey);
+  const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  const da = d.getDate();
+  if (diff === 0)  return `오늘 · ${da}일`;
+  if (diff === 1)  return `내일 · ${da}일`;
+  if (diff === -1) return `어제 · ${da}일`;
+  if (diff > 0)    return `+${diff}일 · ${da}일`;
+  return `${da}일`;
+}
+
+// 카드 내 출시일 표시 라벨
 function formatDayLabel(dateStr) {
-  // "5 May, 2026" → "오늘 · 5 May" 같은 형식
   if (!dateStr) return '미정';
   try {
-    const d = new Date(dateStr.replace(/(\d+)\s(\w+),?\s(\d{4})/, '$2 $1, $3'));
-    if (isNaN(d)) return dateStr;
+    const d = parseUpcomingDate(dateStr);
+    if (!d) return dateStr;
     const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
-    const diff = Math.round((d-today)/(86400000));
-    const mo = d.toLocaleString('en-US',{month:'short'});
+    const diff = Math.round((d - today) / 86400000);
+    const mo = d.toLocaleString('ko-KR', {month:'long'});
     const da = d.getDate();
-    if (diff===0)  return `오늘 · ${mo} ${da}`;
-    if (diff===1)  return `내일 · ${mo} ${da}`;
-    if (diff===-1) return `어제 · ${mo} ${da}`;
-    if (diff>0)    return `${diff}일 후 · ${mo} ${da}`;
-    return `${-diff}일 전 · ${mo} ${da}`;
+    if (diff === 0)  return `오늘 · ${mo} ${da}일`;
+    if (diff === 1)  return `내일 · ${mo} ${da}일`;
+    if (diff === -1) return `어제 · ${mo} ${da}일`;
+    if (diff > 0)    return `${mo} ${da}일 (D-${diff})`;
+    return `${mo} ${da}일`;
   } catch { return dateStr; }
 }
 
-function buildDayTabs(upcoming) {
+function buildMonthTabs(upcoming) {
   const el = document.getElementById('day-tabs');
-  if (!upcoming || upcoming.length===0) { el.innerHTML=''; return; }
+  if (!upcoming || upcoming.length === 0) { el.innerHTML = ''; return; }
 
-  const NO_DATE = '출시일 미정';
-  const counts  = {};
+  const now      = new Date();
+  const thisYM   = toMonthKey(now);
+  const thisYear = now.getFullYear();
+  const thisMon  = now.getMonth(); // 0-based
+
+  // 각 게임을 버킷에 분류
+  // 이번 달 → dayKey ('YYYY-MM-DD')
+  // 다음 달 이후 → monthKey ('YYYY-MM')
+  // 파싱 불가 → 'no-date'
+  const dayCounts   = {};  // 이번 달 일별
+  const monthCounts = {};  // 다음 달+ 월별
+  let   nodateCount = 0;
+
   upcoming.forEach(g => {
-    const d = g.release_date||NO_DATE;
-    counts[d] = (counts[d]||0)+1;
+    const d = parseUpcomingDate(g.release_date);
+    if (!d) { nodateCount++; return; }
+    const ym = toMonthKey(d);
+    if (ym === thisYM) {
+      const dk = toDayKey(d);
+      dayCounts[dk] = (dayCounts[dk] || 0) + 1;
+    } else {
+      monthCounts[ym] = (monthCounts[ym] || 0) + 1;
+    }
   });
 
-  // 날짜 파싱 헬퍼 (정렬용)
-  function parseSortDate(str) {
-    if (!str || str === NO_DATE) return Infinity;
-    // "7 May, 2026" / "May 7, 2026" / "2026-05-07" 등 처리
-    const fixed = str.replace(/(\d+)\s([A-Za-z]+),?\s(\d{4})/, '$2 $1, $3');
-    const d = new Date(fixed);
-    return isNaN(d) ? Infinity : d.getTime();
+  const thisMonthTotal = Object.values(dayCounts).reduce((s, n) => s + n, 0);
+  const sortedDays     = Object.keys(dayCounts).sort();
+  const sortedMonths   = Object.keys(monthCounts).sort();
+
+  let html = `<div class="day-tab" data-day="all" onclick="switchUpcomingDay('all')">전체 (${upcoming.length})</div>`;
+
+  // 이번 달: 월 전체 탭 + 일별 탭
+  if (thisMonthTotal > 0) {
+    html += `<div class="day-tab active" data-day="${thisYM}" onclick="switchUpcomingDay('${thisYM}')">`
+          + `${thisMon+1}월 <span style="opacity:.5;font-size:9px">이번 달</span> `
+          + `<span style="opacity:.6;font-size:10px">${thisMonthTotal}</span></div>`;
+    sortedDays.forEach(dk => {
+      html += `<div class="day-tab" data-day="${dk}" onclick="switchUpcomingDay('${dk}')">`
+            + `${formatDayTabLabel(dk)} <span style="opacity:.6;font-size:10px">${dayCounts[dk]}</span></div>`;
+    });
+    // 구분선 역할 빈 스페이서
+    if (sortedMonths.length > 0 || nodateCount > 0) {
+      html += `<span style="color:var(--border);align-self:center;padding:0 2px">│</span>`;
+    }
   }
 
-  const dates = Object.keys(counts).sort((a,b) => {
-    const ta = parseSortDate(a), tb = parseSortDate(b);
-    if (ta === Infinity && tb === Infinity) return a.localeCompare(b);
-    return ta - tb;
+  // 다음 달+: 월별 탭
+  sortedMonths.forEach(ym => {
+    const [y, m] = ym.split('-');
+    const label  = parseInt(y) === thisYear ? `${parseInt(m)}월` : `${y}.${parseInt(m)}월`;
+    html += `<div class="day-tab" data-day="${ym}" onclick="switchUpcomingDay('${ym}')">`
+          + `${label} <span style="opacity:.6;font-size:10px">${monthCounts[ym]}</span></div>`;
   });
 
-  let html = `<div class="day-tab active" data-day="all" onclick="switchUpcomingDay('all')">전체 (${upcoming.length})</div>`;
-  dates.forEach(d => {
-    const label = d===NO_DATE ? '미정' : formatDayLabel(d);
-    html += `<div class="day-tab" data-day="${d}" onclick="switchUpcomingDay('${d.replace(/'/g,"\\'")}')">
-      ${label} <span style="opacity:.6;font-size:10px">${counts[d]}</span>
-    </div>`;
-  });
+  // 미정 탭
+  if (nodateCount > 0) {
+    html += `<div class="day-tab" data-day="no-date" onclick="switchUpcomingDay('no-date')">`
+          + `미정 <span style="opacity:.6;font-size:10px">${nodateCount}</span></div>`;
+  }
+
   el.innerHTML = html;
+
+  // 기본 선택: 이번 달이 있으면 이번 달, 없으면 전체
+  const defaultDay = thisMonthTotal > 0 ? thisYM : 'all';
+  _selectedDay = defaultDay;
 }
 
 function switchUpcomingDay(day) {
@@ -1174,10 +1261,24 @@ function handleImgError(img, appid) {
 
 function renderUpcomingGrid() {
   const grid = document.getElementById('upcoming-grid');
-  const NO_DATE = '출시일 미정';
-  let games = _selectedDay==='all'
-    ? _upcomingAll
-    : _upcomingAll.filter(g => (g.release_date||NO_DATE) === _selectedDay);
+  let games;
+  if (_selectedDay === 'all') {
+    games = _upcomingAll;
+  } else if (_selectedDay === 'no-date') {
+    games = _upcomingAll.filter(g => !parseUpcomingDate(g.release_date));
+  } else if (_selectedDay.length === 7) {
+    // 'YYYY-MM' 형식 → 월별 필터
+    games = _upcomingAll.filter(g => {
+      const d = parseUpcomingDate(g.release_date);
+      return d && toMonthKey(d) === _selectedDay;
+    });
+  } else {
+    // 'YYYY-MM-DD' 형식 → 일별 필터
+    games = _upcomingAll.filter(g => {
+      const d = parseUpcomingDate(g.release_date);
+      return d && toDayKey(d) === _selectedDay;
+    });
+  }
 
   if (games.length===0) {
     grid.innerHTML = '<div class="upcoming-empty"><div style="font-size:40px">🗓</div><p style="margin-top:8px">해당 날짜 게임이 없습니다.</p></div>';
@@ -1250,24 +1351,30 @@ function renderUpcoming(upcoming) {
   }
 
   // 통계 카드
-  const soon    = _upcomingAll.filter(g=>g.coming_soon).length;
-  const out     = _upcomingAll.filter(g=>!g.coming_soon).length;
-  const watch   = _upcomingAll.filter(g=>(g.followers||0)>=10000).length;
+  const now      = new Date();
+  const thisYM   = toMonthKey(now);
+  const soon     = _upcomingAll.filter(g => g.coming_soon).length;
+  const out      = _upcomingAll.filter(g => !g.coming_soon).length;
+  const watch    = _upcomingAll.filter(g => (g.followers||0) >= 10000).length;
+  const thisMon  = _upcomingAll.filter(g => {
+    const d = parseUpcomingDate(g.release_date);
+    return d && toMonthKey(d) === thisYM;
+  }).length;
   document.getElementById('stats-upcoming').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">📅 이번 주 타이틀</div>
-      <div class="stat-value">${_upcomingAll.length}</div>
-      <div class="stat-sub">최근 1주 출시 + 향후 60일 예정작</div>
+    <div class="stat-card" style="border-color:rgba(102,192,244,.3)">
+      <div class="stat-label" style="color:var(--accent)">📅 이번 달 예정작</div>
+      <div class="stat-value" style="color:var(--accent)">${thisMon}</div>
+      <div class="stat-sub">${now.getMonth()+1}월 출시 예정</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">⏳ 출시 예정</div>
+      <div class="stat-label">⏳ 전체 예정작</div>
       <div class="stat-value">${soon}</div>
-      <div class="stat-sub">Coming Soon</div>
+      <div class="stat-sub">6개월 이내 Coming Soon</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">✅ 최근 출시</div>
       <div class="stat-value">${out}</div>
-      <div class="stat-sub">New Releases</div>
+      <div class="stat-sub">최근 1주 New Releases</div>
     </div>
     <div class="stat-card" style="border-color:rgba(245,197,24,.3)">
       <div class="stat-label" style="color:var(--gold)">⭐ 주목 타이틀</div>
@@ -1275,8 +1382,7 @@ function renderUpcoming(upcoming) {
       <div class="stat-sub">팔로워 10,000+</div>
     </div>`;
 
-  buildDayTabs(_upcomingAll);
-  _selectedDay = 'all';
+  buildMonthTabs(_upcomingAll);
   renderUpcomingGrid();
 }
 
