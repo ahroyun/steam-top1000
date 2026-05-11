@@ -59,6 +59,36 @@
   .tab.tab-lr.active { color: var(--gold); background: var(--card); border-color: rgba(245,197,24,.35); border-bottom: 1px solid var(--card); margin-bottom: -1px; }
   .tab.tab-lr:hover  { color: var(--gold); background: rgba(245,197,24,.08); }
 
+  /* 가이드 탭: 뮤트 */
+  .tab.tab-guide { color: var(--muted); }
+  .tab.tab-guide.active { color: var(--text); background: var(--card); border-color: var(--border); border-bottom: 1px solid var(--card); margin-bottom: -1px; }
+  .tab.tab-guide:hover  { color: var(--text); }
+
+  /* 가이드 패널 */
+  .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .guide-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 22px;
+  }
+  .guide-card h3 {
+    font-size: 13px; font-weight: 700; margin-bottom: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .guide-row { display: flex; gap: 10px; margin-bottom: 10px; font-size: 12px; line-height: 1.7; }
+  .guide-row:last-child { margin-bottom: 0; }
+  .guide-key {
+    flex-shrink: 0; width: 90px; font-weight: 600; color: var(--text);
+  }
+  .guide-val { color: var(--muted); }
+  .guide-val strong { color: var(--text); font-weight: 600; }
+  .guide-badge {
+    display: inline-block; border-radius: 3px; padding: 1px 6px;
+    font-size: 10px; font-weight: 700; margin-right: 4px; vertical-align: middle;
+  }
+  .guide-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .guide-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.7; padding-top: 10px; border-top: 1px solid var(--border); }
+
   .content { padding: 20px 32px; }
   .panel { display: none; }
   .panel.active { display: block; }
@@ -261,6 +291,7 @@
   <div class="tab tab-lr"    onclick="switchTab('w2')">📊 14일+</div>
   <div class="tab tab-lr"    onclick="switchTab('w1m')">🏆 30일+</div>
   <div class="tab tab-chart" onclick="switchTab('upcoming')">🗓 신작 캘린더</div>
+  <div class="tab tab-guide" onclick="switchTab('guide')" style="margin-left:auto">📖 가이드</div>
 </div>
 
 <div class="content">
@@ -305,46 +336,11 @@
       </table>
     </div>
     <div class="pagination" id="pg-today"></div>
-    <div class="fn-note">
-      <strong>① 판매량(추정)</strong> SteamSpy가 제공하는 owners 범위(예: 200,000 ~ 500,000)의 중간값으로 환산한 추정치. 실제 판매량·게임 수 증정·번들 포함 여부에 따라 실제와 차이 있음 &nbsp;·&nbsp;
-      <strong>② 동접자</strong> Steam 공식 ISteamUserStats API 실시간 수치 (조회 실패 시 SteamSpy 추정치 폴백). 수집 시점(한국시간 09:00)의 스냅샷임 &nbsp;·&nbsp;
-      <strong>③ 전일증감</strong> 전날 동일 스크립트 실행 시점 스냅샷 기준. SteamSpy 동접 추정치는 수주간 평균으로 단기 변동이 크지 않아 연속 수집 시 0으로 표시될 수 있음
-    </div>
   </div>
 
   <!-- ── 퍼블리싱 후보 ── -->
   <div class="panel" id="panel-indy">
     <div class="stats" id="stats-indy"></div>
-    <div class="criteria-banner">
-      <div style="margin-bottom:6px">
-        <strong style="color:var(--purple)">🎯 선별 기준</strong>
-        <span style="color:var(--muted)"> — 아래 조건을 모두 충족하는 게임을 표시합니다</span>
-      </div>
-      <div style="color:var(--text)">
-        <span style="color:var(--purple)">①</span> SteamSpy 기준 동시접속자 순위 <strong>1,000위 이내</strong>
-        <span style="color:var(--muted);font-size:11px;margin-left:4px">— 매일 수집 시점 기준, SteamSpy 추정치 사용</span>
-      </div>
-      <div style="color:var(--text)">
-        <span style="color:var(--purple)">②</span> 퍼블리셔·개발사 명칭에 <strong>대형사 키워드 미포함</strong>
-        <span style="color:var(--muted);font-size:10px;margin-left:4px">
-          Valve / EA / Ubisoft / Activision / Blizzard / 2K / Bethesda / Square Enix / Bandai Namco /
-          Capcom / SEGA / Nexon / Netmarble / NCSoft / Krafton / Smilegate / Riot / Epic /
-          Microsoft / Sony / Nintendo / CD Projekt / Paradox / THQ Nordic 등
-        </span>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-        <strong style="color:var(--purple)">★ 하이라이트 기준</strong>
-        <span style="color:var(--muted);font-size:11px"> — 아래 조건 중 하나 이상 충족 시 보라 음영 + 뱃지 표시 (최대 25개)</span>
-        <div style="margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;font-size:11px">
-          <span><span style="color:var(--purple);font-weight:700">NEW</span> <span style="color:var(--muted)">전일 기록 없는 신규 진입</span></span>
-          <span><span style="color:var(--up);font-weight:700">↑%</span> <span style="color:var(--muted)">전일 대비 동접 15%+ 급상승</span></span>
-          <span><span style="color:var(--accent);font-weight:700">TOP</span> <span style="color:var(--muted)">전체 차트 200위 이내 (CCU 검증)</span></span>
-        </div>
-      </div>
-      <div style="color:var(--muted);font-size:11px;margin-top:6px">
-        ※ 퍼블리셔 미기재 게임은 개발사 명칭 기준 &nbsp;·&nbsp; 키워드 매칭 방식으로 실제 규모와 다를 수 있음
-      </div>
-    </div>
     <div class="filter-bar">
       <div class="filter-group">
         <input class="f-input wide" id="search-indy" placeholder="🔍 게임명 / 개발사 / 퍼블리셔 검색" oninput="applyFilters('indy')" />
@@ -382,12 +378,6 @@
       </table>
     </div>
     <div class="pagination" id="pg-indy"></div>
-    <div class="fn-note">
-      <strong>① 판매량(추정)</strong> SteamSpy owners 범위 중간값. 실제 판매량과 다를 수 있음 &nbsp;·&nbsp;
-      <strong>② 동접자</strong> Steam 공식 실시간 수치 (조회 실패 시 SteamSpy 폴백) &nbsp;·&nbsp;
-      <strong>③ 전일증감</strong> 전날 동일 수집 시점 기준 &nbsp;·&nbsp;
-      <strong>퍼블리싱 후보 기준</strong> 대형사 키워드 단순 매칭 방식 — 실제 기업 규모와 다를 수 있으며, 퍼블리셔 미기재 게임은 개발사 명칭 적용
-    </div>
   </div>
 
   <!-- ── 7일+ 롱런 ── -->
@@ -530,6 +520,184 @@
     <div class="stats" id="stats-upcoming"></div>
     <div class="day-tabs" id="day-tabs"></div>
     <div class="upcoming-grid" id="upcoming-grid"></div>
+  </div>
+
+  <!-- ── 가이드 ── -->
+  <div class="panel" id="panel-guide">
+    <div style="max-width:1100px">
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">📖 지표 가이드</div>
+        <div style="color:var(--muted);font-size:13px">각 탭의 데이터 출처·산출 방식·선별·하이라이트 기준을 정리합니다.</div>
+      </div>
+
+      <div class="guide-grid">
+
+        <!-- 데이터 출처 -->
+        <div class="guide-card">
+          <h3>🗂 데이터 출처</h3>
+          <div class="guide-row">
+            <div class="guide-key">수집 시점</div>
+            <div class="guide-val">매일 <strong>한국시간 20:00</strong> (GitHub Actions 자동 실행)</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">차트 원본</div>
+            <div class="guide-val"><strong>SteamSpy</strong> — 동시접속자 순위 Top 1,000 목록, 판매량(owners) 추정, 리뷰 수</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">실시간 CCU</div>
+            <div class="guide-val"><strong>Steam 공식 ISteamUserStats API</strong> — 게임별 실제 동접자 수 (수집 시점 스냅샷). 조회 실패 시 SteamSpy 추정치로 폴백</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">가격·할인</div>
+            <div class="guide-val"><strong>SteamSpy</strong> — 수집 시점 기준 정가(원화) 및 할인율</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">신작 캘린더</div>
+            <div class="guide-val"><strong>Steam 공식 API</strong> — featuredcategories(큐레이션) + 검색 API(filter=comingsoon) 두 소스 병합, 오늘 기준 ±60일 범위</div>
+          </div>
+        </div>
+
+        <!-- 주요 지표 설명 -->
+        <div class="guide-card">
+          <h3>📐 주요 지표 설명</h3>
+          <div class="guide-row">
+            <div class="guide-key">판매량(추정)</div>
+            <div class="guide-val">SteamSpy owners 범위(예: <em>200,000 ~ 500,000</em>)의 <strong>중간값</strong>으로 환산. 번들·증정·무료배포 포함될 수 있어 실제 유료 판매량과 차이 있음</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">동접자</div>
+            <div class="guide-val">Steam 공식 API의 <strong>실시간 동시접속자</strong>. 수집 시점(20:00 KST) 스냅샷이며, 매일 같은 시각 비교 시 의미 있는 추세 파악 가능</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">전일증감</div>
+            <div class="guide-val">전날 <strong>동일 수집 스크립트 실행 시점</strong>의 스냅샷과 비교. 수집 시각이 크게 다른 경우 오차 발생 가능</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">순위 변동</div>
+            <div class="guide-val">전날 Steam CCU 기준 순위 대비 오늘 순위 변화. <span class="guide-badge" style="background:rgba(79,160,72,.2);color:var(--up)">▲</span> 상승 / <span class="guide-badge" style="background:rgba(201,64,64,.2);color:var(--down)">▼</span> 하락 표시</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">리뷰(긍정%)</div>
+            <div class="guide-val">SteamSpy 기준 전체 리뷰 수 및 긍정 비율. <span class="guide-badge" style="background:rgba(79,160,72,.2);color:var(--up)">≥95%</span> 매우 긍정 <span class="guide-badge" style="background:rgba(102,192,244,.2);color:var(--accent)">≥75%</span> 긍정 <span class="guide-badge" style="background:rgba(201,64,64,.2);color:var(--down)">&lt;75%</span> 복합</div>
+          </div>
+        </div>
+
+        <!-- 퍼블리싱 후보 선별 기준 -->
+        <div class="guide-card" style="border-color:rgba(168,85,247,.3)">
+          <h3 style="color:var(--purple)">🎯 퍼블리싱 후보 — 선별 기준</h3>
+          <div class="guide-row">
+            <div class="guide-key">① 순위</div>
+            <div class="guide-val">Steam CCU 기준 <strong>동시접속자 순위 1,000위 이내</strong> — 매일 수집 시점 기준</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">② 개발사</div>
+            <div class="guide-val">퍼블리셔·개발사 명칭에 <strong>대형사 키워드 미포함</strong>. 퍼블리셔 미기재 시 개발사 명칭 적용</div>
+          </div>
+          <hr class="guide-divider" />
+          <div style="font-size:11px;color:var(--muted);line-height:1.7">
+            <strong style="color:var(--text)">제외 키워드 (일부)</strong><br>
+            Valve · EA · Ubisoft · Activision · Blizzard · 2K · Bethesda · Square Enix · Bandai Namco · Capcom · SEGA · Nexon · Netmarble · NCSoft · Krafton · Smilegate · Riot · Epic · Microsoft · Sony · Nintendo · CD Projekt · Paradox · THQ Nordic 등
+          </div>
+          <div class="guide-note">키워드 매칭 방식으로 실제 기업 규모와 다를 수 있음. 향후 화이트리스트/블랙리스트로 보완 예정</div>
+        </div>
+
+        <!-- 퍼블리싱 후보 하이라이트 기준 -->
+        <div class="guide-card" style="border-color:rgba(168,85,247,.3)">
+          <h3 style="color:var(--purple)">★ 퍼블리싱 후보 — 하이라이트 기준</h3>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">아래 조건 중 하나 이상 충족 시 <strong style="color:var(--text)">보라 음영</strong> + 뱃지 표시 (최대 25개)</div>
+          <div class="guide-row">
+            <div class="guide-key"><span class="guide-badge" style="background:rgba(168,85,247,.25);color:var(--purple)">NEW</span></div>
+            <div class="guide-val">전일 기록이 없는 <strong>신규 진입</strong> 게임 (처음 1,000위 안에 들어온 날)</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key"><span class="guide-badge" style="background:rgba(79,160,72,.2);color:var(--up)">↑%</span></div>
+            <div class="guide-val">전일 대비 동접자 <strong>+15% 이상 급상승</strong></div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key"><span class="guide-badge" style="background:rgba(102,192,244,.2);color:var(--accent)">TOP</span></div>
+            <div class="guide-val">전체 차트 <strong>200위 이내</strong> 진입 (Steam CCU 검증 기준)</div>
+          </div>
+          <div class="guide-note">하이라이트 후보가 없을 경우 순위 1~30위 게임을 자동으로 하이라이트</div>
+        </div>
+
+        <!-- 롱런 집계 기준 -->
+        <div class="guide-card" style="border-color:rgba(245,197,24,.3)">
+          <h3 style="color:var(--gold)">📊 롱런 탭 — 집계 기준</h3>
+          <div class="guide-row">
+            <div class="guide-key">7일+</div>
+            <div class="guide-val">수집 기록이 <strong>7일 이상</strong> 존재하는 게임</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">14일+</div>
+            <div class="guide-val">수집 기록이 <strong>14일 이상</strong> 존재하는 게임</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">30일+</div>
+            <div class="guide-val">수집 기록이 <strong>30일 이상</strong> 존재하는 게임</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">평균순위</div>
+            <div class="guide-val">관측 기간 전체의 일별 순위 평균 (낮을수록 좋음)</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">평균동접</div>
+            <div class="guide-val">관측 기간 전체의 Steam CCU 일별 평균</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">최근동접</div>
+            <div class="guide-val">가장 최근 수집일 기준 Steam CCU</div>
+          </div>
+          <div class="guide-note">데이터가 충분히 쌓이기 전에는 해당 탭이 빈 상태로 표시됩니다 (7일 / 14일 / 30일 이후 순차 활성화)</div>
+        </div>
+
+        <!-- 신작 캘린더 기준 -->
+        <div class="guide-card">
+          <h3>🗓 신작 캘린더 — 기준</h3>
+          <div class="guide-row">
+            <div class="guide-key">표시 범위</div>
+            <div class="guide-val">오늘 기준 <strong>과거 7일 ~ 미래 60일</strong> 내 출시 예정·최신 게임</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">데이터 소스</div>
+            <div class="guide-val">① Steam featuredcategories (큐레이션 신작 10~20개) + ② Steam 검색 API comingsoon 필터 (최대 100개) 병합</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">날짜 미정</div>
+            <div class="guide-val">출시일이 "To Be Announced" 또는 연·월만 확정된 경우 <strong>날짜 미정</strong>으로 표시</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">할인 정보</div>
+            <div class="guide-val">출시 기념 할인 중인 경우 할인율 표시 (Steam 정보 기준)</div>
+          </div>
+          <div class="guide-note">Steam 공식 API 응답 기준이므로 실제 출시일과 다를 수 있음. 인디/소규모 타이틀은 누락될 수 있음</div>
+        </div>
+
+        <!-- 수집 정책 & 주의사항 -->
+        <div class="guide-card" style="grid-column: 1 / -1">
+          <h3>⚠️ 수집 정책 및 주의사항</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px 24px">
+            <div class="guide-row" style="margin-bottom:0">
+              <div class="guide-key">수집 시각</div>
+              <div class="guide-val">매일 KST 20:00 스냅샷. 동일 시각 비교 시 의미 있으며, 임의 시각 수동 실행 데이터는 추세 해석에 오차 발생 가능</div>
+            </div>
+            <div class="guide-row" style="margin-bottom:0">
+              <div class="guide-key">첫 실행</div>
+              <div class="guide-val">코드 배포 후 첫 번째 실행 시 순위 변동(▲▼)은 이전 SteamSpy 순위 대비 비교되어 일시적으로 부정확할 수 있음. 이후 자동 보정</div>
+            </div>
+            <div class="guide-row" style="margin-bottom:0">
+              <div class="guide-key">판매량 주의</div>
+              <div class="guide-val">SteamSpy 판매량은 owners 범위 중간값 추정치로 무료 배포·번들 포함 가능. 마케팅 자료로 직접 인용 시 주의</div>
+            </div>
+            <div class="guide-row" style="margin-bottom:0">
+              <div class="guide-key">대형사 필터</div>
+              <div class="guide-val">퍼블리싱 후보 필터는 키워드 단순 매칭 방식. 자회사·레이블명이 다를 경우 대형사가 포함될 수 있음</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
 </div><!-- /content -->
