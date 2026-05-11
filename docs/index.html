@@ -614,7 +614,7 @@
           </div>
           <div class="guide-row">
             <div class="guide-key">③ 출시 경과</div>
-            <div class="guide-val">출시일 기준 <strong>18개월(548일) 이내</strong> — 이미 시장에서 자리잡은 장수 타이틀 제외. 출시일 미기재 게임은 통과 처리</div>
+            <div class="guide-val">출시일 기준 <strong>36개월(3년) 이내</strong> — 이미 시장에서 장기 자리잡은 타이틀 제외. 출시일 미기재 게임은 통과 처리</div>
           </div>
           <div class="guide-row">
             <div class="guide-key">④ 판매량</div>
@@ -1386,7 +1386,7 @@ fetch('data.json?_='+Date.now())
     //   ① 대형사 키워드 미포함
     //   ② 출시 18개월(548일) 이내 — 이미 시장에서 자리잡은 게임 제외
     //   ③ 판매량 추정 100만 미만 — 이미 메가히트 타이틀 제외 (null은 통과)
-    const INDY_RELEASE_DAYS = 548;  // 18개월
+    const INDY_RELEASE_DAYS = 1095; // 36개월(3년)
     const INDY_OWNERS_MAX   = 1_000_000;
     const indyCandidates = rows.filter(g =>
       !isBig(g) &&
