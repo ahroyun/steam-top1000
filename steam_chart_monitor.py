@@ -501,7 +501,15 @@ def _fetch_upcoming_search(seen: set, date_from, date_to) -> list:
                 break
             print(f"  [popularcomingsoon p{page+1}] {len(raw)}개")
             for it in raw:
+                # appid 추출: id → appid → logo/store_url에서 파싱 순으로 시도
                 aid = it.get("id") or it.get("appid")
+                if not aid:
+                    for url_field in ("logo", "header_image", "store_url", "url"):
+                        url_val = it.get(url_field, "") or ""
+                        m = re.search(r'/apps?/(\d+)/', url_val)
+                        if m:
+                            aid = int(m.group(1))
+                            break
                 if not aid or aid in seen:
                     continue
                 seen.add(aid)
