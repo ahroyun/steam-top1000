@@ -183,16 +183,36 @@
   .days-2w { background: #1a2a3a; color: var(--accent); border: 1px solid var(--accent); }
   .days-1w { background: var(--mint-bg); color: var(--mint); border: 1px solid var(--mint); }
 
-  /* ── 신작 캘린더: 날짜 탭 ── */
-  .day-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-  .day-tab {
-    padding: 6px 16px; border-radius: 20px; cursor: pointer;
+  /* ── 신작 캘린더: 월별 탭 (1단계) ── */
+  .day-tabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .month-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .month-pill {
+    padding: 7px 16px; border-radius: 20px; cursor: pointer;
     color: var(--muted); border: 1px solid var(--border);
     font-size: 12px; font-weight: 500; background: var(--card);
+    transition: all .2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .month-pill:hover { border-color: var(--purple); color: var(--purple); }
+  .month-pill.active { background: var(--purple-bg); color: var(--purple); border-color: var(--purple); font-weight: 700; }
+  .month-pill .this-mon { font-size: 9px; opacity: 0.55; }
+  .tab-cnt { opacity: 0.55; font-size: 10px; }
+
+  /* ── 신작 캘린더: 일별 탭 (2단계) ── */
+  .day-row {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 10px 14px; background: rgba(255,255,255,.02);
+    border-radius: 8px; border: 1px solid var(--border);
+  }
+  .day-pill {
+    padding: 5px 12px; border-radius: 14px; cursor: pointer;
+    color: var(--muted); border: 1px solid transparent;
+    font-size: 11px; font-weight: 500; background: transparent;
     transition: all .2s; white-space: nowrap;
   }
-  .day-tab:hover { border-color: var(--purple); color: var(--purple); }
-  .day-tab.active { background: var(--purple-bg); color: var(--purple); border-color: var(--purple); font-weight: 700; }
+  .day-pill:hover { background: rgba(255,255,255,.05); color: var(--text); border-color: var(--border); }
+  .day-pill.active { background: var(--purple-bg); color: var(--purple); border-color: var(--purple); font-weight: 700; }
+  .day-pill.is-today { border-color: var(--gold) !important; color: var(--gold) !important; font-weight: 700; }
+  .day-pill.is-today.active { background: var(--gold-bg); }
 
   /* ── 신작 카드 ── */
   .upcoming-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
@@ -204,6 +224,9 @@
   .upcoming-card:hover { border-color: var(--purple); transform: translateY(-2px); }
   .upcoming-card.card-10k { border-color: var(--gold) !important; box-shadow: 0 0 10px rgba(245,197,24,.15); }
   .upcoming-card.card-10k:hover { border-color: var(--gold) !important; }
+  .upcoming-card.card-popular { border-color: var(--gold) !important; box-shadow: 0 0 10px rgba(245,197,24,.15); }
+  .upcoming-card.card-popular:hover { border-color: var(--gold) !important; }
+  .badge-popular { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); }
   .upcoming-card img {
     width: 100%; height: 130px; object-fit: cover; display: block; background: #0e1923;
   }
@@ -722,21 +745,25 @@
           <h3>🗓 신작 캘린더 — 기준</h3>
           <div class="guide-row">
             <div class="guide-key">표시 범위</div>
-            <div class="guide-val">오늘 기준 <strong>과거 7일 ~ 미래 60일</strong> 내 출시 예정·최신 게임</div>
+            <div class="guide-val">오늘 기준 <strong>과거 7일 ~ 미래 180일</strong> 내 출시 예정·최신 게임</div>
           </div>
           <div class="guide-row">
             <div class="guide-key">데이터 소스</div>
-            <div class="guide-val">① Steam featuredcategories (큐레이션 신작 10~20개) + ② Steam 검색 API comingsoon 필터 (최대 100개) 병합</div>
+            <div class="guide-val">① Steam featuredcategories (큐레이션 신작) + ② Steam <strong>popularcomingsoon</strong> 필터 (인기 예정작 최대 500개) 병합·중복 제거</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key">탭 구조</div>
+            <div class="guide-val">월별 탭(1단계) → 클릭 시 해당 월 일별 탭(2단계) 펼침. <strong>오늘 날짜</strong>는 금색 ★로 표시</div>
+          </div>
+          <div class="guide-row">
+            <div class="guide-key"><span class="guide-badge" style="background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold)">★ 인기</span></div>
+            <div class="guide-val">Steam <strong>popularcomingsoon</strong> 순위 기준 — 일별 뷰 상위 5개 / 월별·전체 뷰 상위 10개. 카드 앞부분에 정렬되며 금색 테두리로 구분. Steam 자체 알고리즘(검색·위시리스트·팔로워 등 종합)으로 산출된 인기도 순위</div>
           </div>
           <div class="guide-row">
             <div class="guide-key">날짜 미정</div>
-            <div class="guide-val">출시일이 "To Be Announced" 또는 연·월만 확정된 경우 <strong>날짜 미정</strong>으로 표시</div>
+            <div class="guide-val">출시일이 "To Be Announced" 또는 연·월만 확정된 경우 <strong>미정</strong> 탭에 표시</div>
           </div>
-          <div class="guide-row">
-            <div class="guide-key">할인 정보</div>
-            <div class="guide-val">출시 기념 할인 중인 경우 할인율 표시 (Steam 정보 기준)</div>
-          </div>
-          <div class="guide-note">Steam 공식 API 응답 기준이므로 실제 출시일과 다를 수 있음. 인디/소규모 타이틀은 누락될 수 있음</div>
+          <div class="guide-note">Steam 공식 API 응답 기준이므로 실제 출시일과 다를 수 있음. popularcomingsoon 순위는 Steam 알고리즘에 따라 매일 달라질 수 있음</div>
         </div>
 
         <!-- 수집 정책 & 주의사항 -->
@@ -778,7 +805,8 @@ const sortState = {
 };
 
 let _upcomingAll = [];
-let _selectedDay = 'all'; // 'all' | 'YYYY-MM' (월별) | 'YYYY-MM-DD' (이번달 일별) | 'no-date'
+let _selectedMonth = null; // 'YYYY-MM' | null
+let _selectedDay   = 'all'; // 'all' | 'YYYY-MM' | 'YYYY-MM-DD' | 'no-date'
 
 // ── 신작 여부 판별 (출시 N일 이내) ───────────────────────────────────────────
 // parseUpcomingDate 와 동일한 정규식으로 파싱 ("7 May, 2026" → "May 7, 2026")
@@ -1179,77 +1207,92 @@ function buildMonthTabs(upcoming) {
   if (!upcoming || upcoming.length === 0) { el.innerHTML = ''; return; }
 
   const now      = new Date();
+  const todayKey = toDayKey(now);
   const thisYM   = toMonthKey(now);
   const thisYear = now.getFullYear();
-  const thisMon  = now.getMonth(); // 0-based
 
-  // 각 게임을 버킷에 분류
-  // 이번 달 → dayKey ('YYYY-MM-DD')
-  // 다음 달 이후 → monthKey ('YYYY-MM')
-  // 파싱 불가 → 'no-date'
-  const dayCounts   = {};  // 이번 달 일별
-  const monthCounts = {};  // 다음 달+ 월별
-  let   nodateCount = 0;
+  // 월별 게임 수 + 월별 일별 게임 수
+  const monthCounts = {};
+  const daysByMonth = {}; // { 'YYYY-MM': { 'YYYY-MM-DD': count } }
+  let nodateCount = 0;
 
   upcoming.forEach(g => {
     const d = parseUpcomingDate(g.release_date);
     if (!d) { nodateCount++; return; }
     const ym = toMonthKey(d);
-    if (ym === thisYM) {
-      const dk = toDayKey(d);
-      dayCounts[dk] = (dayCounts[dk] || 0) + 1;
-    } else {
-      monthCounts[ym] = (monthCounts[ym] || 0) + 1;
-    }
+    const dk = toDayKey(d);
+    monthCounts[ym] = (monthCounts[ym] || 0) + 1;
+    if (!daysByMonth[ym]) daysByMonth[ym] = {};
+    daysByMonth[ym][dk] = (daysByMonth[ym][dk] || 0) + 1;
   });
 
-  const thisMonthTotal = Object.values(dayCounts).reduce((s, n) => s + n, 0);
-  const sortedDays     = Object.keys(dayCounts).sort();
-  const sortedMonths   = Object.keys(monthCounts).sort();
+  const sortedMonths = Object.keys(monthCounts).sort();
 
-  let html = `<div class="day-tab" data-day="all" onclick="switchUpcomingDay('all')">전체 (${upcoming.length})</div>`;
-
-  // 이번 달: 월 전체 탭 + 일별 탭
-  if (thisMonthTotal > 0) {
-    html += `<div class="day-tab active" data-day="${thisYM}" onclick="switchUpcomingDay('${thisYM}')">`
-          + `${thisMon+1}월 <span style="opacity:.5;font-size:9px">이번 달</span> `
-          + `<span style="opacity:.6;font-size:10px">${thisMonthTotal}</span></div>`;
-    sortedDays.forEach(dk => {
-      html += `<div class="day-tab" data-day="${dk}" onclick="switchUpcomingDay('${dk}')">`
-            + `${formatDayTabLabel(dk)} <span style="opacity:.6;font-size:10px">${dayCounts[dk]}</span></div>`;
-    });
-    // 구분선 역할 빈 스페이서
-    if (sortedMonths.length > 0 || nodateCount > 0) {
-      html += `<span style="color:var(--border);align-self:center;padding:0 2px">│</span>`;
-    }
+  // 기본 선택 초기화: 이번달 있으면 이번달, 없으면 첫번째 달
+  if (!_selectedMonth || !monthCounts[_selectedMonth]) {
+    _selectedMonth = monthCounts[thisYM] ? thisYM : (sortedMonths[0] || null);
+    _selectedDay   = _selectedMonth || 'all';
   }
 
-  // 다음 달+: 월별 탭
+  // ── 1단계: 월별 탭 행 ────────────────────────────────────────────
+  let html = `<div class="month-row">`;
+  html += `<div class="month-pill${_selectedDay==='all'?' active':''}" onclick="switchUpcomingAll()">전체 <span class="tab-cnt">${upcoming.length}</span></div>`;
+
   sortedMonths.forEach(ym => {
     const [y, m] = ym.split('-');
-    const label  = parseInt(y) === thisYear ? `${parseInt(m)}월` : `${y}.${parseInt(m)}월`;
-    html += `<div class="day-tab" data-day="${ym}" onclick="switchUpcomingDay('${ym}')">`
-          + `${label} <span style="opacity:.6;font-size:10px">${monthCounts[ym]}</span></div>`;
+    const isThis  = ym === thisYM;
+    const label   = parseInt(y) === thisYear ? `${parseInt(m)}월` : `${y}.${parseInt(m)}월`;
+    const isActive = _selectedMonth === ym && _selectedDay !== 'all' && _selectedDay !== 'no-date';
+    html += `<div class="month-pill${isActive?' active':''}" onclick="switchUpcomingMonth('${ym}')">`
+          + `${label}${isThis ? ` <span class="this-mon">이번달</span>` : ''}`
+          + ` <span class="tab-cnt">${monthCounts[ym]}</span></div>`;
   });
 
-  // 미정 탭
   if (nodateCount > 0) {
-    html += `<div class="day-tab" data-day="no-date" onclick="switchUpcomingDay('no-date')">`
-          + `미정 <span style="opacity:.6;font-size:10px">${nodateCount}</span></div>`;
+    html += `<div class="month-pill${_selectedDay==='no-date'?' active':''}" onclick="switchUpcomingDay('no-date')">미정 <span class="tab-cnt">${nodateCount}</span></div>`;
+  }
+  html += `</div>`;
+
+  // ── 2단계: 선택된 달의 일별 탭 행 ──────────────────────────────
+  if (_selectedMonth && _selectedDay !== 'all' && _selectedDay !== 'no-date' && daysByMonth[_selectedMonth]) {
+    const days = Object.keys(daysByMonth[_selectedMonth]).sort();
+    html += `<div class="day-row">`;
+    // 해당 월 전체
+    html += `<div class="day-pill${_selectedDay===_selectedMonth?' active':''}" onclick="switchUpcomingDay('${_selectedMonth}')">전체 <span class="tab-cnt">${monthCounts[_selectedMonth]}</span></div>`;
+    // 일별
+    days.forEach(dk => {
+      const isToday = dk === todayKey;
+      const isSel   = _selectedDay === dk;
+      const cnt     = daysByMonth[_selectedMonth][dk];
+      html += `<div class="day-pill${isSel?' active':''}${isToday?' is-today':''}" onclick="switchUpcomingDay('${dk}')">`
+            + `${formatDayTabLabel(dk)}${isToday?' ★':''} <span class="tab-cnt">${cnt}</span></div>`;
+    });
+    html += `</div>`;
   }
 
   el.innerHTML = html;
+}
 
-  // 기본 선택: 이번 달이 있으면 이번 달, 없으면 전체
-  const defaultDay = thisMonthTotal > 0 ? thisYM : 'all';
-  _selectedDay = defaultDay;
+function switchUpcomingAll() {
+  _selectedDay   = 'all';
+  _selectedMonth = null;
+  buildMonthTabs(_upcomingAll);
+  renderUpcomingGrid();
+}
+
+function switchUpcomingMonth(ym) {
+  _selectedMonth = ym;
+  _selectedDay   = ym;   // 월 전체 선택
+  buildMonthTabs(_upcomingAll);
+  renderUpcomingGrid();
 }
 
 function switchUpcomingDay(day) {
   _selectedDay = day;
-  document.querySelectorAll('.day-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.day === day);
-  });
+  if (day !== 'all' && day !== 'no-date') {
+    _selectedMonth = day.substring(0, 7);
+  }
+  buildMonthTabs(_upcomingAll);
   renderUpcomingGrid();
 }
 
@@ -1273,33 +1316,50 @@ function renderUpcomingGrid() {
   } else if (_selectedDay === 'no-date') {
     games = _upcomingAll.filter(g => !parseUpcomingDate(g.release_date));
   } else if (_selectedDay.length === 7) {
-    // 'YYYY-MM' 형식 → 월별 필터
     games = _upcomingAll.filter(g => {
       const d = parseUpcomingDate(g.release_date);
       return d && toMonthKey(d) === _selectedDay;
     });
   } else {
-    // 'YYYY-MM-DD' 형식 → 일별 필터
     games = _upcomingAll.filter(g => {
       const d = parseUpcomingDate(g.release_date);
       return d && toDayKey(d) === _selectedDay;
     });
   }
 
-  if (games.length===0) {
+  if (games.length === 0) {
     grid.innerHTML = '<div class="upcoming-empty"><div style="font-size:40px">🗓</div><p style="margin-top:8px">해당 날짜 게임이 없습니다.</p></div>';
     return;
   }
 
-  grid.innerHTML = games.map(g => {
-    const fw   = g.followers ?? -1;
-    const is10k = fw >= 10000;
-    const isSoon = g.coming_soon;
-    const cardCls = is10k ? 'upcoming-card card-10k' : 'upcoming-card';
-    const imgSrc = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
+  // ── popular_rank 하이라이트 ─────────────────────────────────────────
+  // 일별 뷰: 상위 5개 / 월별·전체 뷰: 상위 10개
+  const popularLimit = (_selectedDay.length === 10) ? 5 : 10;
+  const withRank = games
+    .filter(g => g.popular_rank != null)
+    .sort((a, b) => a.popular_rank - b.popular_rank)
+    .slice(0, popularLimit);
+  const popularMap = new Map(withRank.map((g, i) => [g.appid, i + 1]));
+
+  // 인기 게임 먼저, 나머지는 기존 순서 유지
+  const sorted = [
+    ...withRank,
+    ...games.filter(g => !popularMap.has(g.appid))
+  ];
+
+  grid.innerHTML = sorted.map(g => {
+    const fw         = g.followers ?? -1;
+    const is10k      = fw >= 10000;
+    const popularRank = popularMap.get(g.appid);
+    const isSoon     = g.coming_soon;
+    const cardCls    = popularRank ? 'upcoming-card card-popular'
+                     : is10k      ? 'upcoming-card card-10k'
+                     :              'upcoming-card';
+    const imgSrc  = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
     const relLabel = g.release_date || '미정';
     const priceStr = g.price_krw==null ? '미정' : g.price_krw===0 ? '무료' : '₩'+g.price_krw.toLocaleString('ko-KR');
     const followerStr = fw < 0 ? '-' : `👥 ${fmtF(fw)}`;
+    const starIcon = popularRank ? `<span style="color:var(--gold);font-size:12px">★</span>` : (is10k ? `<span style="color:var(--gold);font-size:12px">★</span>` : '');
 
     return `<div class="${cardCls}">
       <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
@@ -1308,7 +1368,7 @@ function renderUpcomingGrid() {
       <div class="upcoming-info">
         <div class="upcoming-name">
           <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a>
-          ${is10k ? '<span style="color:var(--gold);font-size:12px">★</span>' : ''}
+          ${starIcon}
         </div>
         <div class="upcoming-meta">
           <div class="upcoming-row">
@@ -1339,7 +1399,8 @@ function renderUpcomingGrid() {
           </div>
         </div>
         <span class="release-badge ${isSoon?'badge-soon':'badge-out'}">${isSoon?'출시 예정':'출시됨'}</span>
-        ${is10k ? '<span class="release-badge badge-10k">⭐ 주목</span>' : ''}
+        ${popularRank ? `<span class="release-badge badge-popular">★ 인기 #${popularRank}</span>` : ''}
+        ${is10k && !popularRank ? '<span class="release-badge badge-10k">⭐ 주목</span>' : ''}
       </div>
     </div>`;
   }).join('');
