@@ -809,9 +809,12 @@ let _selectedMonth = null; // 'YYYY-MM' | null
 let _selectedDay   = 'all'; // 'all' | 'YYYY-MM' | 'YYYY-MM-DD' | 'no-date'
 
 // ── 신작 여부 판별 (출시 N일 이내) ───────────────────────────────────────────
-// parseUpcomingDate 와 동일한 정규식으로 파싱 ("7 May, 2026" → "May 7, 2026")
+// "7 May, 2026" / "2026년 6월 3일" 등 다양한 포맷 지원
 function _parseDateSafe(dateStr) {
   if (!dateStr) return null;
+  // 한국어 형식: "2026년 6월 3일"
+  const ko = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if (ko) return new Date(parseInt(ko[1]), parseInt(ko[2])-1, parseInt(ko[3]));
   const fixed = dateStr.replace(/(\d+)\s([A-Za-z]+),?\s(\d{4})/, '$2 $1, $3');
   const d = new Date(fixed);
   return isNaN(d.getTime()) ? null : d;
@@ -1154,8 +1157,12 @@ function renderLRStats(key, lrData, minDays) {
 // ── 신작 캘린더 ───────────────────────────────────────────────────────────────
 
 // 날짜 문자열 → Date 객체 (파싱 실패 시 null)
+// 지원: "7 May, 2026" / "May 7, 2026" / "2026년 6월 3일" 등
 function parseUpcomingDate(str) {
   if (!str) return null;
+  // 한국어 형식: "2026년 6월 3일"
+  const ko = str.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if (ko) return new Date(parseInt(ko[1]), parseInt(ko[2])-1, parseInt(ko[3]));
   const fixed = str.replace(/(\d+)\s([A-Za-z]+),?\s(\d{4})/, '$2 $1, $3');
   const d = new Date(fixed);
   return isNaN(d) ? null : d;
@@ -1171,7 +1178,7 @@ function toMonthKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 
-// 이번 달 날짜 탭 라벨: "오늘 · 11일", "내일 · 12일", "+3일 · 14일" 등
+// 이번 달 날짜 탭 라벨: "오늘 · 11일", "내일 · 12일", "14일" 등
 function formatDayTabLabel(dayKey) {
   const d = new Date(dayKey);
   const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
@@ -1180,8 +1187,7 @@ function formatDayTabLabel(dayKey) {
   if (diff === 0)  return `오늘 · ${da}일`;
   if (diff === 1)  return `내일 · ${da}일`;
   if (diff === -1) return `어제 · ${da}일`;
-  if (diff > 0)    return `+${diff}일 · ${da}일`;
-  return `${da}일`;
+  return `${da}일`;   // 그 외: 날짜 숫자만 표시
 }
 
 // 카드 내 출시일 표시 라벨
@@ -1265,7 +1271,7 @@ function buildMonthTabs(upcoming) {
       const isSel   = _selectedDay === dk;
       const cnt     = daysByMonth[_selectedMonth][dk];
       html += `<div class="day-pill${isSel?' active':''}${isToday?' is-today':''}" onclick="switchUpcomingDay('${dk}')">`
-            + `${formatDayTabLabel(dk)}${isToday?' ★':''} <span class="tab-cnt">${cnt}</span></div>`;
+            + `${formatDayTabLabel(dk)} <span class="tab-cnt">${cnt}</span></div>`;
     });
     html += `</div>`;
   }
@@ -1348,18 +1354,21 @@ function renderUpcomingGrid() {
   ];
 
   grid.innerHTML = sorted.map(g => {
-    const fw         = g.followers ?? -1;
-    const is10k      = fw >= 10000;
+    const fw          = g.followers ?? -1;
+    const is10k       = fw >= 10000;
     const popularRank = popularMap.get(g.appid);
-    const isSoon     = g.coming_soon;
-    const cardCls    = popularRank ? 'upcoming-card card-popular'
-                     : is10k      ? 'upcoming-card card-10k'
-                     :              'upcoming-card';
-    const imgSrc  = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
+    const isSoon      = g.coming_soon;
+    const cardCls     = popularRank ? 'upcoming-card card-popular'
+                      : is10k       ? 'upcoming-card card-10k'
+                      :               'upcoming-card';
+    const imgSrc   = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
     const relLabel = g.release_date || '미정';
     const priceStr = g.price_krw==null ? '미정' : g.price_krw===0 ? '무료' : '₩'+g.price_krw.toLocaleString('ko-KR');
-    const followerStr = fw < 0 ? '-' : `👥 ${fmtF(fw)}`;
-    const starIcon = popularRank ? `<span style="color:var(--gold);font-size:12px">★</span>` : (is10k ? `<span style="color:var(--gold);font-size:12px">★</span>` : '');
+    const starIcon = (popularRank || is10k) ? `<span style="color:var(--gold);font-size:12px">★</span>` : '';
+    // 관심도 행: popularcomingsoon 순위 또는 공백
+    const interestVal = popularRank
+      ? `<span style="color:var(--gold);font-weight:600">Steam 인기 #${popularRank}</span>`
+      : '-';
 
     return `<div class="${cardCls}">
       <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
@@ -1388,10 +1397,8 @@ function renderUpcomingGrid() {
             <span class="upcoming-val">${g.genres||'-'}</span>
           </div>
           <div class="upcoming-row">
-            <span class="upcoming-key">팔로워</span>
-            <span class="upcoming-val" style="${is10k?'color:var(--gold);font-weight:600':''}">
-              ${followerStr}
-            </span>
+            <span class="upcoming-key">관심도</span>
+            <span class="upcoming-val">${interestVal}</span>
           </div>
           <div class="upcoming-row">
             <span class="upcoming-key">가격</span>
