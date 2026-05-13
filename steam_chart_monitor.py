@@ -300,6 +300,11 @@ def _parse_date(date_str: str):
     if re.fullmatch(r'\d{4}', s):
         return date(int(s), 1, 1)
 
+    # 6) 한국어 형식 "2026년 6월 3일"
+    ko_m = re.match(r'(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일', s)
+    if ko_m:
+        return date(int(ko_m.group(1)), int(ko_m.group(2)), int(ko_m.group(3)))
+
     return None
 
 
@@ -405,9 +410,10 @@ def _enrich_upcoming_item(appid: int, name_fallback: str, header_image_fallback:
         "followers":    -1,
     }
     # 필터 없이 요청 → developers, publishers, genres, release_date, price_overview 모두 포함
+    # l=english 명시: 한국어 날짜("2026년 6월 3일") 반환 방지 → 파싱 안정성 확보
     detail_url = (
         f"https://store.steampowered.com/api/appdetails/"
-        f"?appids={appid}&cc=kr"
+        f"?appids={appid}&cc=kr&l=english"
     )
     # Steam appdetails: 최대 3회 재시도 + 연령 제한 우회 쿠키 포함
     app_data = None
