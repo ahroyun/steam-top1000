@@ -1065,7 +1065,7 @@ def write_json(today_df, lr1, lr2, lr1m, upcoming, accumulated_days: int = 0):
     ccu_sp_fallbk = int((today_df["ccu_source"] == "steamspy").sum()) if "ccu_source" in today_df.columns else None
 
     data = {
-        "updated": _dt.now(KST).strftime("%Y-%m-%d %H:%M"),
+        "updated":               _dt.now(KST).strftime("%Y-%m-%d %H:%M"),
         "accumulated_days":      accumulated_days,   # 누적 수집 일수
         "ccu_change_valid":      ccu_valid,           # 전일 증감 계산된 게임 수
         "ccu_change_total":      ccu_total,           # 전체 게임 수
