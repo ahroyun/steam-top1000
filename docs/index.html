@@ -393,62 +393,108 @@
   <!-- ── 퍼블리싱 후보 ── -->
   <div class="panel" id="panel-indy">
     <div class="stats" id="stats-indy"></div>
-
-    <!-- 섹션 1: 출시 게임 하락·이탈 -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <h2 style="font-size:15px;font-weight:700;color:var(--purple)">📉 출시 게임 하락·이탈</h2>
-      <span style="color:var(--muted);font-size:12px">한때 top 300 진입 후 하락하거나 차트에서 사라진 게임</span>
-    </div>
     <div class="filter-bar">
       <div class="filter-group">
         <input class="f-input wide" id="search-indy" placeholder="🔍 게임명 / 개발사 / 퍼블리셔 검색" oninput="applyFilters('indy')" />
       </div>
       <div class="filter-group">
-        <span class="filter-label">상태</span>
-        <select class="f-select" id="status-indy" onchange="applyFilters('indy')">
-          <option value="">전체</option>
-          <option value="이탈">이탈 (7일+)</option>
-          <option value="하락중">하락 중</option>
-        </select>
-      </div>
-      <div class="filter-group">
         <span class="filter-label">장르</span>
         <select class="f-select" id="genre-indy" onchange="applyFilters('indy')"><option value="">전체</option></select>
       </div>
-      <!-- 호환용 숨김 요소들 (resetFilters 에서 참조) -->
-      <select id="badge-indy" style="display:none"><option value=""></option></select>
-      <input id="ccu-min-indy" style="display:none" /><input id="ccu-max-indy" style="display:none" />
-      <select id="release-indy" style="display:none"><option value=""></option></select>
-      <select id="owners-indy" style="display:none"><option value=""></option></select>
+      <div class="filter-group">
+        <span class="filter-label">뱃지</span>
+        <select class="f-select" id="badge-indy" onchange="applyFilters('indy')">
+          <option value="">전체</option>
+          <option value="진입">🆕 진입 (차트 첫 등장)</option>
+          <option value="↑%">📈 급상승 (CCU +15%↑)</option>
+          <option value="신작">🌱 신작 (출시 1년↓)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">동접</span>
+        <input class="f-input narrow" id="ccu-min-indy" type="number" placeholder="최소" oninput="applyFilters('indy')" />
+        <span class="filter-label">~</span>
+        <input class="f-input narrow" id="ccu-max-indy" type="number" placeholder="최대" oninput="applyFilters('indy')" />
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">출시</span>
+        <select class="f-select" id="release-indy" onchange="applyFilters('indy')">
+          <option value="">전체</option>
+          <option value="12">1년 이내</option>
+          <option value="24">2년 이내</option>
+          <option value="36">3년 이내</option>
+          <option value="60">5년 이내</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">판매량</span>
+        <select class="f-select" id="owners-indy" onchange="applyFilters('indy')">
+          <option value="">전체</option>
+          <option value="500000">50만 미만</option>
+          <option value="1000000">100만 미만</option>
+          <option value="2000000">200만 미만</option>
+          <option value="5000000">500만 미만</option>
+        </select>
+      </div>
       <button class="filter-reset" onclick="resetFilters('indy')">초기화</button>
       <span class="count-label" id="count-indy"></span>
     </div>
     <div class="table-wrap">
       <table id="table-indy">
         <thead><tr>
-          <th onclick="sortTable('indy',0)" title="역대 최고 순위 (낮을수록 좋음)">피크 순위</th>
-          <th onclick="sortTable('indy',1)">현재</th>
-          <th onclick="sortTable('indy',2)">게임명</th>
-          <th onclick="sortTable('indy',3)">개발사</th>
-          <th onclick="sortTable('indy',4)">퍼블리셔</th>
-          <th onclick="sortTable('indy',5)">장르</th>
-          <th onclick="sortTable('indy',6)">출시일</th>
-          <th onclick="sortTable('indy',7)" title="top 1000에 등장한 총 일수">유지 일수</th>
-          <th onclick="sortTable('indy',8)" title="관측 기간 일별 Steam CCU 평균">평균 동접</th>
-          <th onclick="sortTable('indy',9)" title="SteamSpy owners 범위 중간값">판매량(추정)</th>
-          <th onclick="sortTable('indy',10)">리뷰(%)</th>
+          <th onclick="sortTable('indy',0)">순위</th>
+          <th onclick="sortTable('indy',1)">게임명</th>
+          <th onclick="sortTable('indy',2)">개발사</th>
+          <th onclick="sortTable('indy',3)">퍼블리셔</th>
+          <th onclick="sortTable('indy',4)">장르</th>
+          <th onclick="sortTable('indy',5)">출시일</th>
+          <th onclick="sortTable('indy',6)" title="SteamSpy owners 범위 중간값">판매량(추정)<sup class="fn">①</sup></th>
+          <th onclick="sortTable('indy',7)">동접자</th>
+          <th onclick="sortTable('indy',8)">전일증감(%)</th>
+          <th onclick="sortTable('indy',9)">리뷰수(긍정%)</th>
+          <th onclick="sortTable('indy',10)">가격</th>
+          <th onclick="sortTable('indy',11)">할인</th>
         </tr></thead>
         <tbody id="tbody-indy"></tbody>
       </table>
     </div>
     <div class="pagination" id="pg-indy"></div>
 
-    <!-- 섹션 2: 출시 예정 주목작 -->
-    <div style="display:flex;align-items:center;gap:10px;margin:32px 0 12px">
-      <h2 style="font-size:15px;font-weight:700;color:var(--gold)">🔭 출시 예정 주목작</h2>
-      <span style="color:var(--muted);font-size:12px">Steam 인기 예정작 순위 Top 50 (popularcomingsoon 기준)</span>
+    <!-- ── 하락·이탈 후보 섹션 ── -->
+    <div style="display:flex;align-items:center;gap:10px;margin:32px 0 12px;padding-top:20px;border-top:1px solid var(--border)">
+      <h2 style="font-size:15px;font-weight:700;color:var(--purple)">📉 하락·이탈 주목 게임</h2>
+      <span style="color:var(--muted);font-size:12px">한때 top 300 진입 후 하락하거나 7일+ 사라진 게임 — 낮아진 몸값에 접근 가능한 타이밍</span>
     </div>
-    <div id="publish-upcoming-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select class="f-select" id="dropped-status" onchange="renderDroppedGames()">
+        <option value="">전체</option>
+        <option value="이탈">이탈 (7일+)</option>
+        <option value="하락중">하락 중</option>
+      </select>
+      <input class="f-input wide" id="dropped-search" placeholder="🔍 게임명 검색" oninput="renderDroppedGames()" />
+      <span class="count-label" id="count-dropped" style="margin-left:auto;line-height:32px"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="table-dropped">
+        <thead><tr>
+          <th onclick="sortDropped(0)" title="역대 최고 순위">피크 순위</th>
+          <th onclick="sortDropped(1)">현재</th>
+          <th onclick="sortDropped(2)">게임명</th>
+          <th onclick="sortDropped(3)">개발사</th>
+          <th onclick="sortDropped(4)">퍼블리셔</th>
+          <th onclick="sortDropped(5)">장르</th>
+          <th onclick="sortDropped(6)">출시일</th>
+          <th onclick="sortDropped(7)" title="top 1000 등장 총 일수">유지 일수</th>
+          <th onclick="sortDropped(8)" title="관측 기간 일별 CCU 평균">평균 동접</th>
+          <th onclick="sortDropped(9)">판매량(추정)</th>
+          <th onclick="sortDropped(10)">리뷰(%)</th>
+        </tr></thead>
+        <tbody id="tbody-dropped"></tbody>
+      </table>
+    </div>
+    <div id="dropped-empty" style="display:none;color:var(--muted);font-size:13px;text-align:center;padding:30px 0">
+      데이터 누적 중 — 수집 기간이 쌓이면 자동으로 표시됩니다
+    </div>
   </div>
 
   <!-- ── 7일+ 롱런 ── -->
@@ -920,33 +966,28 @@ function applyFilters(key) {
   const relMon   = parseInt(document.getElementById(`release-${key}`)?.value)||0;
   const ownersMaxV = document.getElementById(`owners-${key}`)?.value;
   const ownersMax  = ownersMaxV ? parseInt(ownersMaxV) : Infinity;
-  // 퍼블리싱 후보 상태 필터
-  const publishStatus = document.getElementById(`status-${key}`)?.value||'';
-
   let src;
   if      (key==='today') src = window._data?.today_chart||[];
   else if (key==='indy')  src = window._indyCandidates||[];
   else                    src = window._data?.[`longrun_${key}`]||[];
 
+  const isChart = key==='today' || key==='indy';
   filtered[key] = src.filter(g => {
     const nameMatch  = !q ||
       (g.name||'').toLowerCase().includes(q) ||
       (g.developer||'').toLowerCase().includes(q) ||
       (g.publisher||'').toLowerCase().includes(q);
     const genreMatch = !genre || (g.genres||'').includes(genre);
-    // indy 탭은 avg_ccu, 나머지는 ccu or latest_ccu
-    const ccuVal  = key==='indy' ? (g.avg_ccu||0)
-                  : key==='today' ? (g.ccu||0) : (g.latest_ccu||0);
+    const ccuVal     = isChart ? (g.ccu||0) : (g.latest_ccu||0);
     const ccuMatch   = ccuVal>=ccuMin && ccuVal<=ccuMax;
-    const _bmap = key === 'today' ? window._todayBadgeMap : null;
+    const _bmap = key === 'indy'  ? window._indyBadgeMap  :
+                  key === 'today' ? window._todayBadgeMap : null;
     const badgeMatch = !badge || (_bmap?.get(g.appid)||[]).includes(badge);
     const releaseMatch = !relMon || releasedWithin(g.release_date, relMon * 30.44);
     const ownersMatch  = ownersMax === Infinity ||
                          g.owners_estimate == null ||
                          g.owners_estimate < ownersMax;
-    // 퍼블리싱 후보 상태 필터
-    const statusMatch = !publishStatus || g.publishStatus === publishStatus;
-    return nameMatch && genreMatch && ccuMatch && badgeMatch && releaseMatch && ownersMatch && statusMatch;
+    return nameMatch && genreMatch && ccuMatch && badgeMatch && releaseMatch && ownersMatch;
   });
 
   pages[key] = 1;
@@ -990,7 +1031,7 @@ function renderIndyRow(g) {
   </tr>`;
 }
 
-// ── 공통 차트 행 렌더 (today 전용) ──────────────────────────────────────────
+// ── 공통 차트 행 렌더 (today / indy 공유) ───────────────────────────────────
 function renderChartRow(g, key) {
   const disc = g.discount_pct||0;
   const chg  = g.ccu_change;
@@ -1036,15 +1077,14 @@ function renderChartRow(g, key) {
 
 // ── 페이지 렌더 ───────────────────────────────────────────────────────────────
 function renderPage(key) {
+  const isChart = key==='today' || key==='indy';
   const rows    = filtered[key];
   const page    = pages[key];
   const start   = (page-1)*PAGE_SIZE;
   const slice   = rows.slice(start, start+PAGE_SIZE);
   const tbody   = document.getElementById(`tbody-${key}`);
 
-  if (key === 'indy') {
-    tbody.innerHTML = slice.map(g => renderIndyRow(g)).join('');
-  } else if (key === 'today') {
+  if (isChart) {
     tbody.innerHTML = slice.map(g => renderChartRow(g, key)).join('');
   } else {
     const badgeCls = key==='w1m' ? 'days-4w' : key==='w2' ? 'days-2w' : 'days-1w';
@@ -1112,9 +1152,9 @@ function sortTable(key, col) {
   else { st.col=col; st.asc=true; }
 
   const todayFields = ['rank','name','developer','publisher','genres','release_date','owners_estimate','ccu','ccu_change','review_score_pct','price_krw','discount_pct'];
-  const indyFields  = ['best_rank','currentRank','name','developer','publisher','genres','release_date','days_in_top','avg_ccu','owners_estimate','avg_review_score'];
   const lrFields    = ['name','days_in_top','avg_rank','best_rank','developer','publisher','genres','release_date','owners_estimate','avg_ccu','latest_ccu','avg_review_score','latest_price','first_seen'];
-  const fields = key==='indy' ? indyFields : key==='today' ? todayFields : lrFields;
+  const isChart = key==='today'||key==='indy';
+  const fields  = isChart ? todayFields : lrFields;
   const field   = fields[col];
 
   filtered[key].sort((a,b) => {
@@ -1599,27 +1639,98 @@ fetch('data.json?_='+Date.now())
         }</div>
       </div>`;
 
-    // ── 퍼블리싱 후보: 피크 top300 → 현재 하락/이탈 ───────────────────────
-    // 기준 ①  longrun_1w에서 best_rank ≤ 300 (한때 상위권 진입)
-    // 기준 ②  현재 rank > 500 OR 7일+ 미등장 (이탈)
-    // 기준 ③  days_in_top ≥ 7 (longrun_1w 자체 조건)
+    // ── 퍼블리싱 후보 (중소 개발사, 기존 로직) ──────────────────────────
+    const BIG_PUB = ['valve','electronic arts','ubisoft','activision','blizzard',
+      '2k','take-two','bethesda','square enix','bandai namco','capcom','sega',
+      'nexon','netmarble','ncsoft','krafton','smilegate','devsisters',
+      'riot games','epic games','microsoft','sony','nintendo','cd projekt',
+      'focus entertainment','thq nordic','paradox','505 games','deep silver',
+      'warhammer','ea games','activision blizzard'];
+    const isBig = g => {
+      const pub = ((g.publisher||'')+(g.developer||'')).toLowerCase();
+      return BIG_PUB.some(b => pub.includes(b));
+    };
+    const indyCandidates = rows.filter(g => !isBig(g));
+    window._indyCandidates = [...indyCandidates].sort((a,b) => (b.ccu||0)-(a.ccu||0));
+
+    const isPublishHL = g =>
+      g.ccu_change == null ||
+      (g.ccu_change_pct || 0) >= 15 ||
+      isNewRelease(g.release_date);
+    const hlArr = [...indyCandidates].filter(isPublishHL).slice(0, 25);
+    window._highlightIndySet = new Set(hlArr.map(g => g.appid));
+
+    const indyBadgeMap = new Map();
+    indyCandidates.forEach(g => {
+      const badges = [];
+      if (g.ccu_change == null)            badges.push('진입');
+      if ((g.ccu_change_pct || 0) >= 15)  badges.push('↑%');
+      if (isNewRelease(g.release_date, 365)) badges.push('신작');
+      if (badges.length) indyBadgeMap.set(g.appid, badges);
+    });
+    window._indyBadgeMap = indyBadgeMap;
+
+    const indyRising   = indyCandidates.filter(g => (g.ccu_change||0) > 0);
+    const indyTopRiser = [...indyRising].sort((a,b)=>(b.ccu_change_pct||0)-(a.ccu_change_pct||0))[0];
+    const indyNew      = indyCandidates.filter(g => g.ccu_change==null);
+    const bestRankIndy = indyCandidates.reduce((b,g) => (!b||g.rank<b.rank)?g:b, null);
+    const anyIndyRising = indyRising.length > 0;
+    const topIndyCcu2  = window._indyCandidates[1] || window._indyCandidates[0];
+    const indyOnSale   = indyCandidates.filter(g => (g.discount_pct||0) > 0).length;
+
+    document.getElementById('stats-indy').innerHTML = `
+      <div class="stat-card" style="border-color:rgba(168,85,247,.4)">
+        <div class="stat-label" style="color:var(--purple)">🎯 퍼블리싱 후보</div>
+        <div class="stat-value">${indyCandidates.length}</div>
+        <div class="stat-sub">중소 개발사 게임 수</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🏆 최고 순위 인디</div>
+        <div class="stat-value" style="font-size:18px">${bestRankIndy ? '#'+bestRankIndy.rank : '-'}</div>
+        <div class="stat-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${bestRankIndy?.name||'-'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📈 ${anyIndyRising ? '급상승 인디' : '동접 2위 인디'}</div>
+        <div class="stat-value" style="font-size:13px;color:${anyIndyRising?'var(--up)':'#fff'};line-height:1.3">
+          ${anyIndyRising ? (indyTopRiser?.name||'해당 없음') : (topIndyCcu2?.name||'-')}
+        </div>
+        <div class="stat-sub">
+          ${anyIndyRising
+            ? `+${indyTopRiser.ccu_change_pct}% 상승`
+            : `동접 ${fmt(topIndyCcu2?.ccu)} · 전일 변동 없음`
+          }
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🆕 신규 진입 인디</div>
+        <div class="stat-value">${indyNew.length}</div>
+        <div class="stat-sub">${indyNew.length > 0
+          ? '오늘 처음 관측된 중소개발사'
+          : indyOnSale > 0
+            ? `할인 진행 중 ${indyOnSale}개`
+            : `${indyCandidates.length}개 전일 차트 유지`
+        }</div>
+      </div>`;
+
+    // ── 하락·이탈 후보 데이터 준비 ──────────────────────────────────────
+    // 기준 ① longrun_1w 중 best_rank ≤ 300
+    // 기준 ② 현재 rank > 500 OR 7일+ 미등장
     const todayRankMap = new Map();
     rows.forEach(g => todayRankMap.set(g.appid, g.rank));
     const todayDateStr = (data.updated||'').split(' ')[0];
     const todayDateObj = todayDateStr ? new Date(todayDateStr) : new Date();
 
-    window._indyCandidates = (data.longrun_1w||[])
+    window._droppedCandidates = (data.longrun_1w||[])
       .filter(g => {
-        if ((g.best_rank||9999) > 300) return false;        // 피크 300위 밖 제외
+        if ((g.best_rank||9999) > 300) return false;
         const curRank = todayRankMap.get(g.appid);
-        if (curRank && curRank <= 300) return false;        // 현재도 상위권 → 제외
+        if (curRank && curRank <= 300) return false;   // 여전히 상위권 → 제외
         if (!curRank) {
-          // 이탈 후보: last_seen 7일+ 경과
           const ls = g.last_seen ? new Date(g.last_seen) : null;
           if (!ls) return false;
           return Math.floor((todayDateObj - ls) / 86400000) >= 7;
         }
-        return curRank > 500;                               // 하락중: 현재 500위 밖
+        return curRank > 500;
       })
       .map(g => {
         const curRank   = todayRankMap.get(g.appid) || null;
@@ -1629,66 +1740,6 @@ fetch('data.json?_='+Date.now())
                  publishStatus: curRank ? '하락중' : '이탈' };
       })
       .sort((a, b) => (a.best_rank||9999) - (b.best_rank||9999));
-
-    const indyCnt  = window._indyCandidates.length;
-    const goneCnt  = window._indyCandidates.filter(g=>g.publishStatus==='이탈').length;
-    const dropCnt  = indyCnt - goneCnt;
-    const bestPeak = window._indyCandidates[0];
-
-    // 출시 예정 주목작: popularcomingsoon top 50
-    const upcomingTop50 = (data.upcoming_games||[])
-      .filter(g => g.popular_rank != null && g.popular_rank < 50)
-      .sort((a,b) => a.popular_rank - b.popular_rank);
-
-    document.getElementById('stats-indy').innerHTML = `
-      <div class="stat-card" style="border-color:rgba(168,85,247,.4)">
-        <div class="stat-label" style="color:var(--purple)">🎯 후보 총계</div>
-        <div class="stat-value">${indyCnt}</div>
-        <div class="stat-sub">피크 top 300 → 현재 하락/이탈</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">📉 이탈</div>
-        <div class="stat-value" style="color:var(--red)">${goneCnt}</div>
-        <div class="stat-sub">7일+ 차트 미등장</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">⬇ 하락 중</div>
-        <div class="stat-value" style="color:var(--gold)">${dropCnt}</div>
-        <div class="stat-sub">현재 500위 밖</div>
-      </div>
-      <div class="stat-card" style="flex:2">
-        <div class="stat-label">🏆 최고 피크 후보</div>
-        <div class="stat-value" style="font-size:14px;line-height:1.3">${bestPeak?.name||'-'}</div>
-        <div class="stat-sub">${bestPeak ? `피크 #${bestPeak.best_rank} · ${bestPeak.publishStatus}` : '데이터 없음'}</div>
-      </div>`;
-
-    // 출시 예정 주목작 렌더
-    const pupGrid = document.getElementById('publish-upcoming-grid');
-    if (pupGrid) {
-      if (upcomingTop50.length === 0) {
-        pupGrid.innerHTML = `<div style="color:var(--muted);font-size:13px;grid-column:1/-1">데이터 없음 (popularcomingsoon 수집 후 표시)</div>`;
-      } else {
-        pupGrid.innerHTML = upcomingTop50.map(g => {
-          const imgUrl = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`;
-          const relStr = g.release_date || '미정';
-          const rankBadge = `<span style="background:var(--gold-bg);color:var(--gold);border:1px solid rgba(245,197,24,.4);border-radius:4px;font-size:10px;font-weight:700;padding:2px 7px">Steam 인기 #${g.popular_rank+1}</span>`;
-          return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
-            <a href="https://store.steampowered.com/app/${g.appid}" target="_blank">
-              <img src="${imgUrl}" alt="${g.name}" style="width:100%;height:130px;object-fit:cover;display:block" onerror="this.style.display='none'">
-            </a>
-            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:5px;flex:1">
-              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
-                <a href="https://store.steampowered.com/app/${g.appid}" target="_blank"
-                   style="color:#fff;font-weight:600;font-size:13px;text-decoration:none;line-height:1.3">${g.name}</a>
-                ${rankBadge}
-              </div>
-              <div style="color:var(--muted);font-size:11px">${g.developer||'-'}</div>
-              <div style="color:var(--accent);font-size:11px;margin-top:2px">📅 ${relStr}</div>
-            </div>
-          </div>`;
-        }).join('');
-      }
-    }
 
     // ── 롱런 stat 카드 ───────────────────────────────────────────────────
     renderLRStats('w1',  data.longrun_1w||[], 7);
@@ -1707,6 +1758,7 @@ fetch('data.json?_='+Date.now())
 
     // ── 초기 렌더 ────────────────────────────────────────────────────────
     ['today','indy','w1','w2','w1m'].forEach(k => applyFilters(k));
+    renderDroppedGames();
   })
   .catch(err => {
     console.error(err);
