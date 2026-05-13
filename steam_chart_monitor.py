@@ -481,7 +481,8 @@ def _fetch_upcoming_search(seen: set, date_from, date_to) -> list:
     페이지당 100개씩 최대 5페이지(500개)까지 수집.
     인기순이므로 날짜 사전 필터 없이 전체 수집 후 메인 루프에서 범위 적용.
     """
-    items      = []
+    items        = []
+    popular_rank = 0   # popularcomingsoon 리스트 내 순위 (0 = 가장 인기, 페이지 연속)
     base_url   = (
         "https://store.steampowered.com/search/results/"
         "?filter=popularcomingsoon&os=win"
@@ -517,7 +518,9 @@ def _fetch_upcoming_search(seen: set, date_from, date_to) -> list:
                     "id":           aid,
                     "name":         it.get("name", ""),
                     "header_image": it.get("logo", "") or it.get("header_image", ""),
+                    "popular_rank": popular_rank,   # Steam 인기 예정작 순위 (0-based)
                 })
+                popular_rank += 1
             if len(raw) < 100:   # 마지막 페이지
                 break
             time.sleep(1)        # 페이지 간 요청 간격
@@ -566,6 +569,7 @@ def fetch_upcoming_games() -> list:
                         "id":           aid,
                         "name":         it.get("name", ""),
                         "header_image": it.get("header_image", ""),
+                        "popular_rank": None,   # featuredcategories 소스 = 순위 없음
                     })
     except Exception as e:
         print(f"  ⚠ featuredcategories 수집 실패: {e}")
@@ -579,6 +583,7 @@ def fetch_upcoming_games() -> list:
     for it in items:
         # 1. appdetails 수집 (개발사/퍼블리셔/장르/가격/출시일)
         g = _enrich_upcoming_item(it["id"], it["name"], it.get("header_image", ""))
+        g["popular_rank"] = it.get("popular_rank")  # None(featured) or 0-based int(popular)
 
         # 2. 날짜 범위 필터: 파싱 성공 시에만 적용 (파싱 실패는 포함)
         parsed = _parse_date(g.get("release_date", ""))
