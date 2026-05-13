@@ -1,9 +1,6 @@
 name: Steam Chart Monitor
 
 on:
-  schedule:
-    # 매일 한국시간 오후 8시 (UTC 11:00)
-    - cron: '0 11 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
