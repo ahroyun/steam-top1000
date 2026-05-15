@@ -393,6 +393,45 @@
   <!-- ── 퍼블리싱 후보 ── -->
   <div class="panel" id="panel-indy">
     <div class="stats" id="stats-indy"></div>
+
+    <!-- ── 하락·이탈 후보 섹션 (stats 아래, 차트 위) ── -->
+    <div style="display:flex;align-items:center;gap:10px;margin:4px 0 12px;padding-top:16px;border-top:1px solid var(--border)">
+      <h2 style="font-size:15px;font-weight:700;color:var(--purple)">📉 하락·이탈 주목 게임</h2>
+      <span style="color:var(--muted);font-size:12px">한때 top 300 진입 후 하락하거나 7일+ 사라진 게임 — 낮아진 몸값에 접근 가능한 타이밍</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select class="f-select" id="dropped-status" onchange="renderDroppedGames()">
+        <option value="">전체</option>
+        <option value="이탈">이탈 (7일+)</option>
+        <option value="하락중">하락 중</option>
+      </select>
+      <input class="f-input wide" id="dropped-search" placeholder="🔍 게임명 검색" oninput="renderDroppedGames()" />
+      <span class="count-label" id="count-dropped" style="margin-left:auto;line-height:32px"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="table-dropped">
+        <thead><tr>
+          <th onclick="sortDropped(0)" title="역대 최고 순위">피크 순위</th>
+          <th onclick="sortDropped(1)">현재</th>
+          <th onclick="sortDropped(2)">게임명</th>
+          <th onclick="sortDropped(3)">개발사</th>
+          <th onclick="sortDropped(4)">퍼블리셔</th>
+          <th onclick="sortDropped(5)">장르</th>
+          <th onclick="sortDropped(6)">출시일</th>
+          <th onclick="sortDropped(7)" title="top 1000 등장 총 일수">유지 일수</th>
+          <th onclick="sortDropped(8)" title="관측 기간 일별 CCU 평균">평균 동접</th>
+          <th onclick="sortDropped(9)">판매량(추정)</th>
+          <th onclick="sortDropped(10)">리뷰(%)</th>
+        </tr></thead>
+        <tbody id="tbody-dropped"></tbody>
+      </table>
+    </div>
+    <div id="dropped-empty" style="display:none;color:var(--muted);font-size:13px;text-align:center;padding:30px 0">
+      데이터 누적 중 — 수집 기간이 쌓이면 자동으로 표시됩니다
+    </div>
+    <div style="margin-bottom:28px"></div>
+
+    <!-- ── 현재 차트 리스트 ── -->
     <div class="filter-bar">
       <div class="filter-group">
         <input class="f-input wide" id="search-indy" placeholder="🔍 게임명 / 개발사 / 퍼블리셔 검색" oninput="applyFilters('indy')" />
@@ -459,42 +498,6 @@
       </table>
     </div>
     <div class="pagination" id="pg-indy"></div>
-
-    <!-- ── 하락·이탈 후보 섹션 ── -->
-    <div style="display:flex;align-items:center;gap:10px;margin:32px 0 12px;padding-top:20px;border-top:1px solid var(--border)">
-      <h2 style="font-size:15px;font-weight:700;color:var(--purple)">📉 하락·이탈 주목 게임</h2>
-      <span style="color:var(--muted);font-size:12px">한때 top 300 진입 후 하락하거나 7일+ 사라진 게임 — 낮아진 몸값에 접근 가능한 타이밍</span>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <select class="f-select" id="dropped-status" onchange="renderDroppedGames()">
-        <option value="">전체</option>
-        <option value="이탈">이탈 (7일+)</option>
-        <option value="하락중">하락 중</option>
-      </select>
-      <input class="f-input wide" id="dropped-search" placeholder="🔍 게임명 검색" oninput="renderDroppedGames()" />
-      <span class="count-label" id="count-dropped" style="margin-left:auto;line-height:32px"></span>
-    </div>
-    <div class="table-wrap">
-      <table id="table-dropped">
-        <thead><tr>
-          <th onclick="sortDropped(0)" title="역대 최고 순위">피크 순위</th>
-          <th onclick="sortDropped(1)">현재</th>
-          <th onclick="sortDropped(2)">게임명</th>
-          <th onclick="sortDropped(3)">개발사</th>
-          <th onclick="sortDropped(4)">퍼블리셔</th>
-          <th onclick="sortDropped(5)">장르</th>
-          <th onclick="sortDropped(6)">출시일</th>
-          <th onclick="sortDropped(7)" title="top 1000 등장 총 일수">유지 일수</th>
-          <th onclick="sortDropped(8)" title="관측 기간 일별 CCU 평균">평균 동접</th>
-          <th onclick="sortDropped(9)">판매량(추정)</th>
-          <th onclick="sortDropped(10)">리뷰(%)</th>
-        </tr></thead>
-        <tbody id="tbody-dropped"></tbody>
-      </table>
-    </div>
-    <div id="dropped-empty" style="display:none;color:var(--muted);font-size:13px;text-align:center;padding:30px 0">
-      데이터 누적 중 — 수집 기간이 쌓이면 자동으로 표시됩니다
-    </div>
   </div>
 
   <!-- ── 7일+ 롱런 ── -->
@@ -1004,31 +1007,85 @@ function resetFilters(key) {
   applyFilters(key);
 }
 
-// ── 퍼블리싱 후보 행 렌더 ────────────────────────────────────────────────────
-function renderIndyRow(g) {
-  const isGone = g.publishStatus === '이탈';
-  const statusBadge = isGone
-    ? `<span style="font-size:10px;font-weight:700;background:rgba(201,64,64,.15);color:var(--red);border:1px solid rgba(201,64,64,.35);border-radius:3px;padding:1px 6px;white-space:nowrap">이탈 ${g.daysSince}일</span>`
-    : `<span style="font-size:10px;font-weight:700;background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.3);border-radius:3px;padding:1px 6px;white-space:nowrap">하락 중</span>`;
-  const currentCell = isGone
-    ? `<span style="color:var(--muted);font-size:12px">-</span> ${statusBadge}`
-    : `<span style="color:var(--down);font-weight:600">#${g.currentRank}</span> ${statusBadge}`;
-  const peakCls = (g.best_rank||9999) <= 50 ? 'rank rank-top' : 'rank';
-  const drop = (!isGone && g.currentRank && g.best_rank)
-    ? `<span style="color:var(--muted);font-size:10px"> (▼${g.currentRank - g.best_rank})</span>` : '';
-  return `<tr class="row-publish">
-    <td class="${peakCls}" style="white-space:nowrap">#${g.best_rank||'-'}${drop}</td>
-    <td style="white-space:nowrap">${currentCell}</td>
-    <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
-    <td class="muted-cell">${g.developer||'-'}</td>
-    <td class="muted-cell">${g.publisher||'-'}</td>
-    <td class="muted-cell">${g.genres||'-'}</td>
-    <td class="muted-cell" style="white-space:nowrap">${g.release_date||'-'}</td>
-    <td class="num">${g.days_in_top||'-'}</td>
-    <td class="num">${fmt(g.avg_ccu)}</td>
-    <td class="num">${fmtM(g.owners_estimate)}</td>
-    <td>${reviewFmt(g.total_reviews, g.avg_review_score)}</td>
-  </tr>`;
+// ── 하락·이탈 테이블 렌더 ────────────────────────────────────────────────────
+const droppedSortState = { col: 0, asc: true };
+
+function renderDroppedGames() {
+  const src    = window._droppedCandidates || [];
+  const q      = (document.getElementById('dropped-search')?.value || '').toLowerCase();
+  const status = document.getElementById('dropped-status')?.value || '';
+
+  let list = src.filter(g => {
+    const nameOk   = !q || (g.name||'').toLowerCase().includes(q);
+    const statusOk = !status || g.publishStatus === status;
+    return nameOk && statusOk;
+  });
+
+  // 현재 sort 상태 적용
+  const fields = ['best_rank','currentRank','name','developer','publisher','genres',
+                  'release_date','days_in_top','avg_ccu','owners_estimate','avg_review_score'];
+  const field  = fields[droppedSortState.col];
+  list.sort((a, b) => {
+    const av = a[field], bv = b[field];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv), 'ko');
+    return droppedSortState.asc ? cmp : -cmp;
+  });
+
+  const tbody   = document.getElementById('tbody-dropped');
+  const tableEl = document.getElementById('table-dropped');
+  const emptyEl = document.getElementById('dropped-empty');
+  const cntEl   = document.getElementById('count-dropped');
+
+  if (cntEl) cntEl.textContent = list.length ? `${list.length}개` : '';
+
+  if (list.length === 0) {
+    if (tableEl) tableEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+  } else {
+    if (tableEl) tableEl.style.display = '';
+    if (emptyEl) emptyEl.style.display = 'none';
+    tbody.innerHTML = list.map(g => {
+      const isGone = g.publishStatus === '이탈';
+      const statusBadge = isGone
+        ? `<span style="font-size:10px;font-weight:700;background:rgba(201,64,64,.15);color:var(--red);border:1px solid rgba(201,64,64,.35);border-radius:3px;padding:1px 6px;white-space:nowrap">이탈 ${g.daysSince}일</span>`
+        : `<span style="font-size:10px;font-weight:700;background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.3);border-radius:3px;padding:1px 6px;white-space:nowrap">하락 중</span>`;
+      const currentCell = isGone
+        ? `<span style="color:var(--muted);font-size:12px">-</span> ${statusBadge}`
+        : `<span style="color:var(--down);font-weight:600">#${g.currentRank}</span> ${statusBadge}`;
+      const peakCls = (g.best_rank||9999) <= 50 ? 'rank rank-top' : 'rank';
+      const drop = (!isGone && g.currentRank && g.best_rank)
+        ? `<span style="color:var(--muted);font-size:10px"> (▼${g.currentRank - g.best_rank})</span>` : '';
+      return `<tr class="row-publish">
+        <td class="${peakCls}" style="white-space:nowrap">#${g.best_rank||'-'}${drop}</td>
+        <td style="white-space:nowrap">${currentCell}</td>
+        <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
+        <td class="muted-cell">${g.developer||'-'}</td>
+        <td class="muted-cell">${g.publisher||'-'}</td>
+        <td class="muted-cell">${g.genres||'-'}</td>
+        <td class="muted-cell" style="white-space:nowrap">${g.release_date||'-'}</td>
+        <td class="num">${g.days_in_top||'-'}</td>
+        <td class="num">${fmt(g.avg_ccu)}</td>
+        <td class="num">${fmtM(g.owners_estimate)}</td>
+        <td>${reviewFmt(g.total_reviews, g.avg_review_score)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // 헤더 정렬 표시
+  document.querySelectorAll('#table-dropped thead th').forEach((th, i) => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (i === droppedSortState.col)
+      th.classList.add(droppedSortState.asc ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+function sortDropped(col) {
+  if (droppedSortState.col === col) droppedSortState.asc = !droppedSortState.asc;
+  else { droppedSortState.col = col; droppedSortState.asc = true; }
+  renderDroppedGames();
 }
 
 // ── 공통 차트 행 렌더 (today / indy 공유) ───────────────────────────────────
