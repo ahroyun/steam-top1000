@@ -289,6 +289,39 @@
     line-height: 1.8;
   }
 
+  /* ── 주차별 아코디언 ── */
+  .week-accordion {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 8px; overflow: hidden;
+  }
+  .week-accordion[open] { border-color: rgba(168,85,247,.35); }
+  .week-summary {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px; cursor: pointer; user-select: none;
+    list-style: none; outline: none;
+    background: rgba(255,255,255,.02);
+    transition: background .15s;
+  }
+  .week-summary:hover { background: rgba(168,85,247,.08); }
+  .week-accordion[open] .week-summary { background: rgba(168,85,247,.06); border-bottom: 1px solid rgba(168,85,247,.2); }
+  .week-summary::before {
+    content: '▶'; font-size: 10px; color: var(--muted);
+    transition: transform .2s; flex-shrink: 0;
+  }
+  .week-accordion[open] .week-summary::before { transform: rotate(90deg); color: var(--purple); }
+  /* 크롬/사파리 기본 마커 숨기기 */
+  .week-summary::-webkit-details-marker { display: none; }
+  .week-label { font-size: 13px; font-weight: 700; color: var(--text); }
+  .week-accordion[open] .week-label { color: var(--purple); }
+  .week-count {
+    margin-left: 6px; font-size: 11px; font-weight: 700;
+    background: rgba(168,85,247,.15); color: var(--purple);
+    border: 1px solid rgba(168,85,247,.3); border-radius: 10px;
+    padding: 1px 8px;
+  }
+  .week-content { padding: 12px 12px; }
+  .week-content .table-wrap { border-radius: 6px; }
+
   @media (max-width: 768px) {
     header, .tabs, .content { padding-left: 12px; padding-right: 12px; }
     .stats { flex-direction: column; }
@@ -408,27 +441,7 @@
       <input class="f-input wide" id="dropped-search" placeholder="🔍 게임명 검색" oninput="renderDroppedGames()" />
       <span class="count-label" id="count-dropped" style="margin-left:auto;line-height:32px"></span>
     </div>
-    <div class="table-wrap">
-      <table id="table-dropped">
-        <thead><tr>
-          <th onclick="sortDropped(0)" title="역대 최고 순위">피크 순위</th>
-          <th onclick="sortDropped(1)">현재</th>
-          <th onclick="sortDropped(2)">게임명</th>
-          <th onclick="sortDropped(3)">개발사</th>
-          <th onclick="sortDropped(4)">퍼블리셔</th>
-          <th onclick="sortDropped(5)">장르</th>
-          <th onclick="sortDropped(6)">출시일</th>
-          <th onclick="sortDropped(7)" title="top 1000 등장 총 일수">유지 일수</th>
-          <th onclick="sortDropped(8)" title="관측 기간 일별 CCU 평균">평균 동접</th>
-          <th onclick="sortDropped(9)">판매량(추정)</th>
-          <th onclick="sortDropped(10)">리뷰(%)</th>
-        </tr></thead>
-        <tbody id="tbody-dropped"></tbody>
-      </table>
-    </div>
-    <div id="dropped-empty" style="display:none;color:var(--muted);font-size:13px;text-align:center;padding:30px 0">
-      데이터 누적 중 — 수집 기간이 쌓이면 자동으로 표시됩니다
-    </div>
+    <div id="dropped-accordion"></div>
     <div style="margin-bottom:28px"></div>
 
     <!-- ── 현재 차트 리스트 ── -->
@@ -1007,85 +1020,130 @@ function resetFilters(key) {
   applyFilters(key);
 }
 
-// ── 하락·이탈 테이블 렌더 ────────────────────────────────────────────────────
-const droppedSortState = { col: 0, asc: true };
+// ── 주차별 아코디언 헬퍼 ──────────────────────────────────────────────────────
+function getWeekMonday(dateStr) {
+  if (!dateStr) return '2000-01-01';
+  const d = new Date(String(dateStr).substring(0, 10));
+  if (isNaN(d)) return '2000-01-01';
+  const day = d.getDay(); // 0=일, 1=월 ...
+  const diff = day === 0 ? -6 : 1 - day; // 해당 주 월요일로
+  d.setDate(d.getDate() + diff);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
+function getWeekLabel(mondayStr) {
+  const mon = new Date(mondayStr);
+  if (isNaN(mon)) return mondayStr;
+  const sun = new Date(mon);
+  sun.setDate(sun.getDate() + 6);
+  const year  = mon.getFullYear();
+  const month = mon.getMonth() + 1;
+  // 주차: 월요일 날짜 기준 ceil(date/7)
+  const weekNum = Math.ceil(mon.getDate() / 7);
+  const monM = mon.getMonth() + 1, monD = mon.getDate();
+  const sunM = sun.getMonth() + 1, sunD = sun.getDate();
+  const range = monM === sunM ? `${monM}/${monD}~${sunD}` : `${monM}/${monD}~${sunM}/${sunD}`;
+  return `${year}년 ${month}월 ${weekNum}주차 (${range})`;
+}
+
+// ── 하락·이탈 아코디언 렌더 ──────────────────────────────────────────────────
 function renderDroppedGames() {
   const src    = window._droppedCandidates || [];
   const q      = (document.getElementById('dropped-search')?.value || '').toLowerCase();
   const status = document.getElementById('dropped-status')?.value || '';
+  const cntEl  = document.getElementById('count-dropped');
+  const accEl  = document.getElementById('dropped-accordion');
 
-  let list = src.filter(g => {
+  const list = src.filter(g => {
     const nameOk   = !q || (g.name||'').toLowerCase().includes(q);
-    const statusOk = !status || g.publishStatus === status;
+    const gs       = g.status || g.publishStatus || '';
+    const statusOk = !status || gs === status;
     return nameOk && statusOk;
   });
 
-  // 현재 sort 상태 적용
-  const fields = ['best_rank','currentRank','name','developer','publisher','genres',
-                  'release_date','days_in_top','avg_ccu','owners_estimate','avg_review_score'];
-  const field  = fields[droppedSortState.col];
-  list.sort((a, b) => {
-    const av = a[field], bv = b[field];
-    if (av == null && bv == null) return 0;
-    if (av == null) return 1;
-    if (bv == null) return -1;
-    const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv), 'ko');
-    return droppedSortState.asc ? cmp : -cmp;
-  });
-
-  const tbody   = document.getElementById('tbody-dropped');
-  const tableEl = document.getElementById('table-dropped');
-  const emptyEl = document.getElementById('dropped-empty');
-  const cntEl   = document.getElementById('count-dropped');
-
   if (cntEl) cntEl.textContent = list.length ? `${list.length}개` : '';
+  if (!accEl) return;
 
   if (list.length === 0) {
-    if (tableEl) tableEl.style.display = 'none';
-    if (emptyEl) emptyEl.style.display = 'block';
-  } else {
-    if (tableEl) tableEl.style.display = '';
-    if (emptyEl) emptyEl.style.display = 'none';
-    tbody.innerHTML = list.map(g => {
-      const isGone = g.publishStatus === '이탈';
-      const statusBadge = isGone
-        ? `<span style="font-size:10px;font-weight:700;background:rgba(201,64,64,.15);color:var(--red);border:1px solid rgba(201,64,64,.35);border-radius:3px;padding:1px 6px;white-space:nowrap">이탈 ${g.daysSince}일</span>`
-        : `<span style="font-size:10px;font-weight:700;background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.3);border-radius:3px;padding:1px 6px;white-space:nowrap">하락 중</span>`;
-      const currentCell = isGone
-        ? `<span style="color:var(--muted);font-size:12px">-</span> ${statusBadge}`
-        : `<span style="color:var(--down);font-weight:600">#${g.currentRank}</span> ${statusBadge}`;
-      const peakCls = (g.best_rank||9999) <= 50 ? 'rank rank-top' : 'rank';
-      const drop = (!isGone && g.currentRank && g.best_rank)
-        ? `<span style="color:var(--muted);font-size:10px"> (▼${g.currentRank - g.best_rank})</span>` : '';
-      return `<tr class="row-publish">
-        <td class="${peakCls}" style="white-space:nowrap">#${g.best_rank||'-'}${drop}</td>
-        <td style="white-space:nowrap">${currentCell}</td>
-        <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
-        <td class="muted-cell">${g.developer||'-'}</td>
-        <td class="muted-cell">${g.publisher||'-'}</td>
-        <td class="muted-cell">${g.genres||'-'}</td>
-        <td class="muted-cell" style="white-space:nowrap">${g.release_date||'-'}</td>
-        <td class="num">${g.days_in_top||'-'}</td>
-        <td class="num">${fmt(g.avg_ccu)}</td>
-        <td class="num">${fmtM(g.owners_estimate)}</td>
-        <td>${reviewFmt(g.total_reviews, g.avg_review_score)}</td>
-      </tr>`;
-    }).join('');
+    accEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0">
+      데이터 누적 중 — 수집 기간이 쌓이면 자동으로 표시됩니다
+    </div>`;
+    return;
   }
 
-  // 헤더 정렬 표시
-  document.querySelectorAll('#table-dropped thead th').forEach((th, i) => {
-    th.classList.remove('sort-asc', 'sort-desc');
-    if (i === droppedSortState.col)
-      th.classList.add(droppedSortState.asc ? 'sort-asc' : 'sort-desc');
+  // 주차별 그룹화 (first_flagged 기준)
+  const todayIso = new Date().toISOString().substring(0, 10);
+  const weekMap  = {};
+  list.forEach(g => {
+    const wk = getWeekMonday(g.first_flagged || todayIso);
+    if (!weekMap[wk]) weekMap[wk] = [];
+    weekMap[wk].push(g);
   });
-}
 
-function sortDropped(col) {
-  if (droppedSortState.col === col) droppedSortState.asc = !droppedSortState.asc;
-  else { droppedSortState.col = col; droppedSortState.asc = true; }
-  renderDroppedGames();
+  // 최신 주차 먼저
+  const weeks = Object.keys(weekMap).sort((a, b) => b.localeCompare(a));
+
+  const rowHtml = g => {
+    const gs     = g.status || g.publishStatus || '';
+    const isGone = gs === '이탈';
+    const curRank   = g.current_rank || g.currentRank || null;
+    const daysSince = g.days_since   || g.daysSince   || 0;
+    const statusBadge = isGone
+      ? `<span style="font-size:10px;font-weight:700;background:rgba(201,64,64,.15);color:var(--red);border:1px solid rgba(201,64,64,.35);border-radius:3px;padding:1px 6px;white-space:nowrap">이탈 ${daysSince}일</span>`
+      : `<span style="font-size:10px;font-weight:700;background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.3);border-radius:3px;padding:1px 6px;white-space:nowrap">하락 중</span>`;
+    const currentCell = isGone
+      ? `<span style="color:var(--muted);font-size:12px">-</span> ${statusBadge}`
+      : `<span style="color:var(--down);font-weight:600">#${curRank}</span> ${statusBadge}`;
+    const peakCls = (g.best_rank||9999) <= 50 ? 'rank rank-top' : 'rank';
+    const drop = (!isGone && curRank && g.best_rank)
+      ? `<span style="color:var(--muted);font-size:10px"> (▼${curRank - g.best_rank})</span>` : '';
+    return `<tr class="row-publish">
+      <td class="${peakCls}" style="white-space:nowrap">#${g.best_rank||'-'}${drop}</td>
+      <td style="white-space:nowrap">${currentCell}</td>
+      <td class="game-name"><a href="https://store.steampowered.com/app/${g.appid}" target="_blank">${g.name}</a></td>
+      <td class="muted-cell">${g.developer||'-'}</td>
+      <td class="muted-cell">${g.publisher||'-'}</td>
+      <td class="muted-cell">${g.genres||'-'}</td>
+      <td class="muted-cell" style="white-space:nowrap">${g.release_date||'-'}</td>
+      <td class="num">${g.days_in_top||'-'}</td>
+      <td class="num">${fmt(g.avg_ccu)}</td>
+      <td class="num">${fmtM(g.owners_estimate)}</td>
+      <td>${reviewFmt(g.total_reviews, g.avg_review_score)}</td>
+      <td class="muted-cell" style="white-space:nowrap">${g.first_flagged||'-'}</td>
+    </tr>`;
+  };
+
+  accEl.innerHTML = weeks.map((wk, idx) => {
+    const games = weekMap[wk].slice().sort((a, b) => (a.best_rank||9999) - (b.best_rank||9999));
+    const label = getWeekLabel(wk);
+    return `<details class="week-accordion" ${idx === 0 ? 'open' : ''}>
+      <summary class="week-summary">
+        <span class="week-label">${label}</span>
+        <span class="week-count">${games.length}개</span>
+      </summary>
+      <div class="week-content">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th title="역대 최고 순위">피크 순위</th>
+              <th>현재</th>
+              <th>게임명</th>
+              <th>개발사</th>
+              <th>퍼블리셔</th>
+              <th>장르</th>
+              <th>출시일</th>
+              <th title="top 1000 등장 총 일수">유지 일수</th>
+              <th title="관측 기간 일별 CCU 평균">평균 동접</th>
+              <th>판매량(추정)</th>
+              <th>리뷰(%)</th>
+              <th title="감시 목록에 처음 등록된 날짜">첫 등록일</th>
+            </tr></thead>
+            <tbody>${games.map(rowHtml).join('')}</tbody>
+          </table>
+        </div>
+      </div>
+    </details>`;
+  }).join('');
 }
 
 // ── 공통 차트 행 렌더 (today / indy 공유) ───────────────────────────────────
@@ -1770,33 +1828,46 @@ fetch('data.json?_='+Date.now())
       </div>`;
 
     // ── 하락·이탈 후보 데이터 준비 ──────────────────────────────────────
-    // 기준 ① longrun_1w 중 best_rank ≤ 300
-    // 기준 ② 현재 rank > 500 OR 7일+ 미등장
     const todayRankMap = new Map();
     rows.forEach(g => todayRankMap.set(g.appid, g.rank));
     const todayDateStr = (data.updated||'').split(' ')[0];
     const todayDateObj = todayDateStr ? new Date(todayDateStr) : new Date();
 
-    window._droppedCandidates = (data.longrun_1w||[])
-      .filter(g => {
-        if ((g.best_rank||9999) > 300) return false;
-        const curRank = todayRankMap.get(g.appid);
-        if (curRank && curRank <= 300) return false;   // 여전히 상위권 → 제외
-        if (!curRank) {
-          const ls = g.last_seen ? new Date(g.last_seen) : null;
-          if (!ls) return false;
-          return Math.floor((todayDateObj - ls) / 86400000) >= 7;
-        }
-        return curRank > 500;
-      })
-      .map(g => {
-        const curRank   = todayRankMap.get(g.appid) || null;
+    if (data.publishing_watch && data.publishing_watch.length > 0) {
+      // Python이 누적 저장한 publishing_watch 사용 (8주 rolling window)
+      window._droppedCandidates = data.publishing_watch.map(g => {
+        const curRank   = todayRankMap.get(g.appid) || g.current_rank || null;
         const ls        = g.last_seen ? new Date(g.last_seen) : null;
-        const daysSince = ls ? Math.floor((todayDateObj - ls) / 86400000) : 0;
+        const daysSince = g.days_since != null ? g.days_since
+                        : ls ? Math.floor((todayDateObj - ls) / 86400000) : 0;
         return { ...g, currentRank: curRank, daysSince,
-                 publishStatus: curRank ? '하락중' : '이탈' };
-      })
-      .sort((a, b) => (a.best_rank||9999) - (b.best_rank||9999));
+                 publishStatus: g.status || '' };
+      });
+    } else {
+      // fallback: longrun_1w 에서 실시간 계산 (publishing_watch 아직 없을 때)
+      window._droppedCandidates = (data.longrun_1w||[])
+        .filter(g => {
+          if ((g.best_rank||9999) > 300) return false;
+          const curRank = todayRankMap.get(g.appid);
+          if (curRank && curRank <= 300) return false;
+          if (!curRank) {
+            const ls = g.last_seen ? new Date(g.last_seen) : null;
+            if (!ls) return false;
+            return Math.floor((todayDateObj - ls) / 86400000) >= 7;
+          }
+          return curRank > 500;
+        })
+        .map(g => {
+          const curRank   = todayRankMap.get(g.appid) || null;
+          const ls        = g.last_seen ? new Date(g.last_seen) : null;
+          const daysSince = ls ? Math.floor((todayDateObj - ls) / 86400000) : 0;
+          const firstFlagged = todayDateStr || new Date().toISOString().substring(0, 10);
+          return { ...g, currentRank: curRank, daysSince,
+                   publishStatus: curRank ? '하락중' : '이탈',
+                   first_flagged: firstFlagged };
+        })
+        .sort((a, b) => (a.best_rank||9999) - (b.best_rank||9999));
+    }
 
     // ── 롱런 stat 카드 ───────────────────────────────────────────────────
     renderLRStats('w1',  data.longrun_1w||[], 7);
